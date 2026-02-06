@@ -55,13 +55,18 @@ async def p(ctx, member: discord.Member = None):
     # جلب التواريخ تلقائياً من نظام ديسكورد
     joined_srv = member.joined_at.strftime("%b %d, %Y") if member.joined_at else "-"
     reg_discord = member.created_at.strftime("%b %d, %Y")
+# --- (1) أمر البروفايل المطور ---
+@bot.command(aliases=['profile'])
+async def p(ctx, member: discord.Member = None):
+    member = member or ctx.author
+    players = load_data()
+    data = players.get(str(member.id), {})
 
-    embed = discord.Embed(
-        title=f"👤 {member.display_name}'s profile",
-        color=discord.Color.blue()
-    )
+    joined_srv = member.joined_at.strftime("%b %d, %Y") if member.joined_at else "-"
+    reg_discord = member.created_at.strftime("%b %d, %Y")
 
-    # 👥 قسم المعلومات الشخصية
+    embed = discord.Embed(title=f"👤 {member.display_name}'s profile", color=discord.Color.blue())
+    
     profile_info = (
         f"**PSN**: {data.get('psn', '-')}\n"
         f"**Country**: {data.get('country', '-')}\n"
@@ -71,39 +76,51 @@ async def p(ctx, member: discord.Member = None):
     )
     embed.add_field(name="👥 Profile", value=profile_info, inline=False)
 
-    # 🎮 قسم بيانات اللعبة
     game_info = f"**Ranked Name**: {data.get('ranked_name', '-')}\n**Consoles**: {data.get('consoles', '-')}"
-    
-    # يظهر Verified Player ✅ فقط إذا تم توثيقه
     if data.get("verified"):
         game_info += "\n**Verified Player** ✅"
     
     embed.add_field(name="🎮 Game Data", value=game_info, inline=False)
-    
     embed.set_thumbnail(url=member.display_avatar.url)
-    embed.set_footer(text=f"!profile help • id: {member.id}")
-    
+    embed.set_footer(text=f"ID: {member.id} • !p help")
     await ctx.send(embed=embed)
 
-    # إضافة بيانات اللعبة
-    game_info = f"**Ranked Name**: {data.get('ranked_name', '-')}\n**Consoles**: {data.get('consoles', '-')}"
-    if data.get("verified"): game_info += "\n**Verified Player** ✅"
-    
-    embed.add_field(name="🎮 Game Data", value=game_info, inline=False)
-    embed.set_thumbnail(url=member.display_avatar.url)
-    
-    await ctx.send(embed=embed)
+# --- (2) أوامر تعبئة البيانات (Set Commands) ---
 
-    # حالة التوثيق (Verified)
-    status = "Verified Player ✅" if data.get('verified') else "Not Verified ❌"
-    embed.add_field(name="🛡️ Status", value=status, inline=False)
-    
-    # وضع صورة اللاعب في الزاوية
-    embed.set_thumbnail(url=ctx.author.display_avatar.url)
-    
-    embed.set_footer(text="CTR Ranked System 🏎️")
-    
-    await ctx.send(embed=embed)
+@bot.command()
+async def set_psn(ctx, psn_id: str):
+    if not re.match(r"^[a-zA-Z0-9_-]+$", psn_id):
+        await ctx.send("❌ خطأ: الـ PSN لا يسمح بالمسافات أو الرموز الخاصة.")
+        return
+    players = load_data()
+    user_id = str(ctx.author.id)
+    if user_id not in players: players[user_id] = {}
+    players[user_id]["psn"] = psn_id
+    save_data(players)
+    await ctx.send(f"✅ تم تحديث الـ PSN إلى: `{psn_id}`")
+
+@bot.command()
+async def set_flag(ctx, emoji: str):
+    players = load_data()
+    user_id = str(ctx.author.id)
+    if user_id not in players: players[user_id] = {}
+    players[user_id]["country"] = emoji
+    save_data(players)
+    await ctx.send(f"✅ تم تعيين العلم")
+
+@bot.command()
+async def set_nat(ctx, *, nat_type: str):
+    valid_types = ["NAT 1", "NAT 2 Close", "NAT 2 Open", "NAT 3"]
+    if nat_type not in valid_types:
+        await ctx.send(f"❌ اختر: `{', '.join(valid_types)}`")
+        return
+    players = load_data()
+    user_id = str(ctx.author.id)
+    if user_id not in players: players[user_id] = {}
+    players[user_id]["nat"] = nat_type
+    save_data(players)
+    await ctx.send(f"✅ تم تحديث الـ NAT")
+
 @bot.command()
 async def verify(ctx, member: discord.Member):
     # 1. التحقق من رتبة المشرف (لازم يكون عنده رول اسمه mod)
