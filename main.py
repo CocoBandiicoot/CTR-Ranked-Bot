@@ -1,3 +1,4 @@
+import re
 import discord
 from discord.ext import commands
 import os
@@ -135,98 +136,96 @@ async def verify(ctx, member: discord.Member):
             color=discord.Color.blue()
         )
         await lobby_channel.send(content=member.mention, embed=how_to_play)
-@bot.command()
+# --- (1) أمر البروفايل المطور (بدون رسائل خطأ) ---
+@bot.command(aliases=['profile'])
 async def p(ctx, member: discord.Member = None):
     member = member or ctx.author
     players = load_data()
-    user_id = str(member.id)
+    data = players.get(str(member.id), {})
+
+    # جلب التواريخ تلقائياً من نظام ديسكورد
+    joined_srv = member.joined_at.strftime("%b %d, %Y") if member.joined_at else "Unknown"
+    reg_discord = member.created_at.strftime("%b %d, %Y")
+
+    embed = discord.Embed(title=f"👤 {member.display_name}'s profile", color=discord.Color.blue())
     
-    # إذا اللاعب مو موجود في قاعدة البيانات، نظهر له بروفايل وهمي كله شرطات
-    data = players.get(user_id, {})
-    is_verified = data.get("verified", False)
-
-    embed = discord.Embed(
-        title=f"👤 {member.display_name}'s profile",
-        color=discord.Color.blue()
-    )
-
     profile_info = (
         f"**PSN**: {data.get('psn', '-')}\n"
         f"**Country**: {data.get('country', '-')}\n"
         f"**NAT Type**: {data.get('nat', '-')}\n"
-        f"**Joined**: {data.get('joined_date', 'Apr 5, 2025')}\n"
-        f"**Registered**: {data.get('reg_date', 'Apr 4, 2025')}"
+        f"**Joined**: {joined_srv}\n"
+        f"**Registered**: {reg_discord}"
     )
     embed.add_field(name="👥 Profile", value=profile_info, inline=False)
 
-    game_data_info = (
-        f"**Ranked Name**: {data.get('ranked_name', '-')}\n"
-        f"**Consoles**: {data.get('consoles', '-')}"
-    )
+    game_data = f"**Ranked Name**: {data.get('ranked_name', '-')}\n**Consoles**: {data.get('consoles', '-')}"
+    if data.get("verified"):
+        game_data += "\n**Verified Player** ✅"
     
-    if is_verified:
-        game_data_info += "\n**Verified Player** ✅"
-    
-    embed.add_field(name="🎮 Game Data", value=game_data_info, inline=False)
+    embed.add_field(name="🎮 Game Data", value=game_data, inline=False)
     embed.set_thumbnail(url=member.display_avatar.url)
-    
     await ctx.send(embed=embed)
 
+# --- (2) أوامر تعبئة البيانات (Set Commands) ---
 
-    data = players[user_id]
-    is_verified = data.get("verified", False)
-
-    # تصميم المربع (Embed)
-    embed = discord.Embed(
-        title=f"👤 {ctx.author.display_name}'s profile",
-        color=discord.Color.blue()
-    )
-
-    # قسم Profile - بدون Time Zone
-    profile_info = (
-        f"**PSN**: {data.get('psn', '-')}\n"
-        f"**Country**: {data.get('country', '-')}\n"
-        f"**NAT Type**: {data.get('nat', '-')}\n"
-        f"**Joined**: {data.get('joined_date', 'Apr 5, 2025')}\n"
-        f"**Registered**: {data.get('reg_date', 'Apr 4, 2025')}"
-    )
-    embed.add_field(name="👥 Profile", value=profile_info, inline=False)
-
-    # قسم Game Data
-    game_data_info = (
-        f"**Ranked Name**: {data.get('ranked_name', '-')}\n"
-        f"**Consoles**: {data.get('consoles', '-')}"
-    )
-    
-    # إضافة سطر التوثيق فقط إذا كان اللاعبVerified
-    if is_verified:
-        game_data_info += "\n**Verified Player** ✅"
-    
-    embed.add_field(name="🎮 Game Data", value=game_data_info, inline=False)
-
-    embed.set_thumbnail(url=ctx.author.display_avatar.url)
-    await ctx.send(embed=embed)
 @bot.command()
 async def set_psn(ctx, psn_id: str):
+    if not re.match(r"^[a-zA-Z0-9_-]+$", psn_id):
+        await ctx.send("❌ خطأ: الـ PSN لا يسمح بالمسافات (مسموح فقط بـ _ و -).")
+        return
     players = load_data()
     user_id = str(ctx.author.id)
-    
-    # إذا كان أول مرة يسجل، ننشئ له الملف بالقيم الافتراضية
-    if user_id not in players:
-        players[user_id] = {
-            "psn": psn_id,
-            "country": "-", "nat": "-", 
-            "ranked_name": "-", "consoles": "-",
-            "verified": False,
-            "joined_date": "Apr 5, 2025", # تقدر تخليها تاريخ اليوم برمجياً
-            "reg_date": "Apr 4, 2025"
-        }
-    else:
-        # إذا كان مسجل بس يبي يغير الـ PSN
-        players[user_id]["psn"] = psn_id
-        
+    if user_id not in players: players[user_id] = {}
+    players[user_id]["psn"] = psn_id
     save_data(players)
-    await ctx.send(f"✅ تم تحديث الـ PSN الخاص بك إلى: `{psn_id}`")
+    await ctx.send(f"✅ تم تحديث الـ PSN")
+
+@bot.command()
+async def set_flag(ctx, emoji: str):
+    players = load_data()
+    user_id = str(ctx.author.id)
+    if user_id not in players: players[user_id] = {}
+    players[user_id]["country"] = emoji
+    save_data(players)
+    await ctx.send(f"✅ تم تعيين العلم")
+
+@bot.command()
+async def set_nat(ctx, *, nat_type: str):
+    valid_types = ["NAT 1", "NAT 2 Close", "NAT 2 Open", "NAT 3"]
+    if nat_type not in valid_types:
+        await ctx.send(f"❌ اختر: `NAT 1`, `NAT 2 Close`, `NAT 2 Open`, `NAT 3`")
+        return
+    players = load_data()
+    user_id = str(ctx.author.id)
+    if user_id not in players: players[user_id] = {}
+    players[user_id]["nat"] = nat_type
+    save_data(players)
+    await ctx.send(f"✅ تم تحديث الـ NAT")
+
+@bot.command()
+async def set_ranked_name(ctx, name: str):
+    if not name.isalnum():
+        await ctx.send("❌ خطأ: اسم الرانك يجب أن يكون بدون مسافات أو رموز.")
+        return
+    players = load_data()
+    user_id = str(ctx.author.id)
+    if user_id not in players: players[user_id] = {}
+    players[user_id]["ranked_name"] = name
+    save_data(players)
+    await ctx.send(f"✅ تم تحديث اسم الرانك")
+
+@bot.command()
+async def set_consoles(ctx, console: str):
+    console = console.upper()
+    if console not in ["PS4", "PS5"]:
+        await ctx.send("❌ اختر `PS4` أو `PS5`.")
+        return
+    players = load_data()
+    user_id = str(ctx.author.id)
+    if user_id not in players: players[user_id] = {}
+    players[user_id]["consoles"] = console
+    save_data(players)
+    await ctx.send(f"✅ تم تحديث المنصة")
 
 # ==========================================
 # (5) سطر التشغيل النهائي - لا تضع شيئاً تحته
