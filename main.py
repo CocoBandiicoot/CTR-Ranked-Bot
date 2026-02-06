@@ -46,14 +46,13 @@ async def ping(ctx):
 # @bot.command()
 # async def command_name(ctx):
 #     ...
-@bot.command()
 @bot.command(aliases=['profile'])
 async def p(ctx, member: discord.Member = None):
     member = member or ctx.author
     players = load_data()
     data = players.get(str(member.id), {})
 
-    # جلب التواريخ تلقائياً
+    # جلب التواريخ تلقائياً من نظام ديسكورد
     joined_srv = member.joined_at.strftime("%b %d, %Y") if member.joined_at else "-"
     reg_discord = member.created_at.strftime("%b %d, %Y")
 
@@ -62,7 +61,7 @@ async def p(ctx, member: discord.Member = None):
         color=discord.Color.blue()
     )
 
-    # إضافة خانات البروفايل (تظهر شرطة - لو كانت فاضية)
+    # 👥 قسم المعلومات الشخصية
     profile_info = (
         f"**PSN**: {data.get('psn', '-')}\n"
         f"**Country**: {data.get('country', '-')}\n"
@@ -71,6 +70,20 @@ async def p(ctx, member: discord.Member = None):
         f"**Registered**: {reg_discord}"
     )
     embed.add_field(name="👥 Profile", value=profile_info, inline=False)
+
+    # 🎮 قسم بيانات اللعبة
+    game_info = f"**Ranked Name**: {data.get('ranked_name', '-')}\n**Consoles**: {data.get('consoles', '-')}"
+    
+    # يظهر Verified Player ✅ فقط إذا تم توثيقه
+    if data.get("verified"):
+        game_info += "\n**Verified Player** ✅"
+    
+    embed.add_field(name="🎮 Game Data", value=game_info, inline=False)
+    
+    embed.set_thumbnail(url=member.display_avatar.url)
+    embed.set_footer(text=f"!profile help • id: {member.id}")
+    
+    await ctx.send(embed=embed)
 
     # إضافة بيانات اللعبة
     game_info = f"**Ranked Name**: {data.get('ranked_name', '-')}\n**Consoles**: {data.get('consoles', '-')}"
