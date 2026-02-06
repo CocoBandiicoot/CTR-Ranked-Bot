@@ -47,27 +47,40 @@ async def ping(ctx):
 # async def command_name(ctx):
 #     ...
 @bot.command()
-async def p(ctx):
+@bot.command(aliases=['profile'])
+async def p(ctx, member: discord.Member = None):
+    member = member or ctx.author
     players = load_data()
-    user_id = str(ctx.author.id)
-    
-        await ctx.send(embed=embed_error)
-        return
+    data = players.get(str(member.id), {})
 
-    data = players[user_id]
-    
-    # إنشاء المربع (Embed) الخاص بالبروفايل
+    # جلب التواريخ تلقائياً
+    joined_srv = member.joined_at.strftime("%b %d, %Y") if member.joined_at else "-"
+    reg_discord = member.created_at.strftime("%b %d, %Y")
+
     embed = discord.Embed(
-        title=f"👤 {ctx.author.display_name}'s profile",
-        description="Check out the PSN profile below.",
+        title=f"👤 {member.display_name}'s profile",
         color=discord.Color.blue()
     )
+
+    # إضافة خانات البروفايل (تظهر شرطة - لو كانت فاضية)
+    profile_info = (
+        f"**PSN**: {data.get('psn', '-')}\n"
+        f"**Country**: {data.get('country', '-')}\n"
+        f"**NAT Type**: {data.get('nat', '-')}\n"
+        f"**Joined**: {joined_srv}\n"
+        f"**Registered**: {reg_discord}"
+    )
+    embed.add_field(name="👥 Profile", value=profile_info, inline=False)
+
+    # إضافة بيانات اللعبة
+    game_info = f"**Ranked Name**: {data.get('ranked_name', '-')}\n**Consoles**: {data.get('consoles', '-')}"
+    if data.get("verified"): game_info += "\n**Verified Player** ✅"
     
-    # إضافة المعلومات (مثل الصورة اللي أرسلتها)
-    embed.add_field(name="🎮 PSN ID", value=f"`{data.get('psn', 'N/A')}`", inline=True)
-    embed.add_field(name="🏆 Rank", value=data.get('rank', 'Bronze'), inline=True)
-    embed.add_field(name="✨ Points", value=str(data.get('points', 0)), inline=True)
+    embed.add_field(name="🎮 Game Data", value=game_info, inline=False)
+    embed.set_thumbnail(url=member.display_avatar.url)
     
+    await ctx.send(embed=embed)
+
     # حالة التوثيق (Verified)
     status = "Verified Player ✅" if data.get('verified') else "Not Verified ❌"
     embed.add_field(name="🛡️ Status", value=status, inline=False)
