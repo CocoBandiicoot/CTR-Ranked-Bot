@@ -84,6 +84,99 @@ async def p(ctx):
     embed.set_footer(text="CTR Ranked System 🏎️")
     
     await ctx.send(embed=embed)
+@bot.command()
+async def verify(ctx, member: discord.Member):
+    # 1. التحقق من رتبة المشرف (لازم يكون عنده رول اسمه mod)
+    if not any(role.name == 'mod' for role in ctx.author.roles):
+        await ctx.send("❌ هذا الأمر مخصص للمشرفين فقط (رول mod)!")
+        return
+
+    # 2. جلب رتبة التوثيق (تأكد أن اسمها في سيرفرك Verified Player)
+    verify_role = discord.utils.get(ctx.guild.roles, name="Verified Player")
+    
+    if not verify_role:
+        await ctx.send("❌ لم أجد رتبة باسم `Verified Player` في السيرفر، يرجى إنشاؤها!")
+        return
+
+    # 3. إعطاء الرتبة للاعب وتحديث بياناته
+    await member.add_roles(verify_role)
+    
+    players = load_data()
+    user_id = str(member.id)
+    
+    if user_id in players:
+        players[user_id]["verified"] = True
+        save_data(players)
+    
+    # 4. إرسال رسالة "Success" في نفس الروم
+    success_embed = discord.Embed(
+        title="✅ Success!",
+        description=f"لقد تم توثيق {member.mention} بنجاح وإعطاؤه رتبة التوثيق.",
+        color=discord.Color.green()
+    )
+    await ctx.send(embed=success_embed)
+
+    # 5. إرسال رسالة "How to play" في روم اللوبيات (ranked-lobbies)
+    # ملاحظة: البوت بيبحث عن الروم بالاسم تلقائياً
+    lobby_channel = discord.utils.get(ctx.guild.text_channels, name="ranked-lobbies")
+    
+    if lobby_channel:
+        how_to_play = discord.Embed(
+            title="🎮 How to play ranked matchmaking",
+            description=(
+                "Press the ✅ **Join** button to join a lobby queue, and wait for it to become full.\n"
+                "Press the ❌ **Leave** button to leave the lobby queue.\n\n"
+                "⚠️ Do not join team based lobbies if you can't/aren't willing to communicate in **voice chat**.\n"
+                "Once a lobby has started you will be pinged in a dedicated **lobby-room** channel.\n\n"
+                "The **scorekeeper** and **host** will be decided. Do not press ✅ to volunteer for scorekeeping if you don't know how.\n"
+                "Find out the **PSN** of the host and join their lobby, or ask for an invite.\n\n"
+                "**Active lobbies are shown below**"
+            ),
+            color=discord.Color.blue()
+        )
+        await lobby_channel.send(content=member.mention, embed=how_to_play)
+@bot.command()
+async def p(ctx):
+    players = load_data()
+    user_id = str(ctx.author.id)
+    
+    if user_id not in players:
+        await ctx.send("❌ أنت غير مسجل! استخدم `!register [PSN]` أولاً.")
+        return
+
+    data = players[user_id]
+    is_verified = data.get("verified", False)
+
+    # تصميم المربع (Embed)
+    embed = discord.Embed(
+        title=f"👤 {ctx.author.display_name}'s profile",
+        color=discord.Color.blue()
+    )
+
+    # قسم Profile - بدون Time Zone
+    profile_info = (
+        f"**PSN**: {data.get('psn', '-')}\n"
+        f"**Country**: {data.get('country', '-')}\n"
+        f"**NAT Type**: {data.get('nat', '-')}\n"
+        f"**Joined**: {data.get('joined_date', 'Apr 5, 2025')}\n"
+        f"**Registered**: {data.get('reg_date', 'Apr 4, 2025')}"
+    )
+    embed.add_field(name="👥 Profile", value=profile_info, inline=False)
+
+    # قسم Game Data
+    game_data_info = (
+        f"**Ranked Name**: {data.get('ranked_name', '-')}\n"
+        f"**Consoles**: {data.get('consoles', '-')}"
+    )
+    
+    # إضافة سطر التوثيق فقط إذا كان اللاعبVerified
+    if is_verified:
+        game_data_info += "\n**Verified Player** ✅"
+    
+    embed.add_field(name="🎮 Game Data", value=game_data_info, inline=False)
+
+    embed.set_thumbnail(url=ctx.author.display_avatar.url)
+    await ctx.send(embed=embed)
 
 # ==========================================
 # (5) سطر التشغيل النهائي - لا تضع شيئاً تحته
