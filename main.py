@@ -136,13 +136,42 @@ async def verify(ctx, member: discord.Member):
         )
         await lobby_channel.send(content=member.mention, embed=how_to_play)
 @bot.command()
-async def p(ctx):
+async def p(ctx, member: discord.Member = None):
+    member = member or ctx.author
     players = load_data()
-    user_id = str(ctx.author.id)
+    user_id = str(member.id)
     
-    if user_id not in players:
-        await ctx.send("❌ أنت غير مسجل! استخدم `!register [PSN]` أولاً.")
-        return
+    # إذا اللاعب مو موجود في قاعدة البيانات، نظهر له بروفايل وهمي كله شرطات
+    data = players.get(user_id, {})
+    is_verified = data.get("verified", False)
+
+    embed = discord.Embed(
+        title=f"👤 {member.display_name}'s profile",
+        color=discord.Color.blue()
+    )
+
+    profile_info = (
+        f"**PSN**: {data.get('psn', '-')}\n"
+        f"**Country**: {data.get('country', '-')}\n"
+        f"**NAT Type**: {data.get('nat', '-')}\n"
+        f"**Joined**: {data.get('joined_date', 'Apr 5, 2025')}\n"
+        f"**Registered**: {data.get('reg_date', 'Apr 4, 2025')}"
+    )
+    embed.add_field(name="👥 Profile", value=profile_info, inline=False)
+
+    game_data_info = (
+        f"**Ranked Name**: {data.get('ranked_name', '-')}\n"
+        f"**Consoles**: {data.get('consoles', '-')}"
+    )
+    
+    if is_verified:
+        game_data_info += "\n**Verified Player** ✅"
+    
+    embed.add_field(name="🎮 Game Data", value=game_data_info, inline=False)
+    embed.set_thumbnail(url=member.display_avatar.url)
+    
+    await ctx.send(embed=embed)
+
 
     data = players[user_id]
     is_verified = data.get("verified", False)
@@ -177,6 +206,27 @@ async def p(ctx):
 
     embed.set_thumbnail(url=ctx.author.display_avatar.url)
     await ctx.send(embed=embed)
+@bot.command()
+async def set_psn(ctx, psn_id: str):
+    players = load_data()
+    user_id = str(ctx.author.id)
+    
+    # إذا كان أول مرة يسجل، ننشئ له الملف بالقيم الافتراضية
+    if user_id not in players:
+        players[user_id] = {
+            "psn": psn_id,
+            "country": "-", "nat": "-", 
+            "ranked_name": "-", "consoles": "-",
+            "verified": False,
+            "joined_date": "Apr 5, 2025", # تقدر تخليها تاريخ اليوم برمجياً
+            "reg_date": "Apr 4, 2025"
+        }
+    else:
+        # إذا كان مسجل بس يبي يغير الـ PSN
+        players[user_id]["psn"] = psn_id
+        
+    save_data(players)
+    await ctx.send(f"✅ تم تحديث الـ PSN الخاص بك إلى: `{psn_id}`")
 
 # ==========================================
 # (5) سطر التشغيل النهائي - لا تضع شيئاً تحته
