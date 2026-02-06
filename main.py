@@ -51,13 +51,6 @@ async def p(ctx):
     players = load_data()
     user_id = str(ctx.author.id)
     
-    # التحقق إذا كان اللاعب مسجل أم لا
-    if user_id not in players:
-        embed_error = discord.Embed(
-            title="❌ ملف غير موجود",
-            description="أنت غير مسجل في النظام. استخدم أمر `!register [PSN ID]` أولاً.",
-            color=discord.Color.red()
-        )
         await ctx.send(embed=embed_error)
         return
 
