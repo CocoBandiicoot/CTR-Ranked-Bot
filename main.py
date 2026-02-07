@@ -6,16 +6,21 @@ import json
 from threading import Thread
 from flask import Flask
 
-# --- (1) محرك التشغيل ---
+# --- (1) محرك التشغيل والـ Uptime ---
 app = Flask('')
 @app.route('/')
-def home(): return "البوت شغال! 🏎️"
+def home(): return "Healthy 🚀"
 def run(): app.run(host='0.0.0.0', port=8000)
 def keep_alive(): Thread(target=run).start()
 
-# --- (2) الإعدادات ---
+# --- (2) الإعدادات وقاعدة البيانات ---
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
+
+# قائمة الأعلام المسموح بها فقط
+ALLOWED_FLAGS = [
+    "🇦🇫", "🇦🇽", "🇦🇱", "🇩🇿", "🇦🇸", "🇦🇩", "🇦🇴", "🇦🇮", "🇦🇬", "🇦🇷", "🇦🇲", "🇦🇼", "🇦🇺", "🇦🇹", "🇦🇿", "🇧🇸", "🇧🇭", "🇧🇩", "🇧🇧", "🇧🇾", "🇧🇪", "🇧🇿", "🇧🇯", "🇧🇲", "🇧🇹", "🇧🇴", "🇧🇦", "🇧🇼", "🇧🇷", "🇻🇬", "🇧🇳", "🇧🇬", "🇧🇫", "🇧🇮", "🇰🇭", "🇨🇲", "🇨🇦", "🇮🇨", "🇨🇻", "🇧🇶", "🇰🇾", "🇨🇫", "🇹🇩", "🇨🇱", "🇨🇳", "🇨🇽", "🇨🇨", "🇨🇴", "🇰🇲", "🇨🇬", "🇨🇩", "🇨🇰", "🇨🇷", "🇨🇮", "🇭🇷", "🇨🇺", "🇨🇼", "🇨🇾", "🇨🇿", "🇩🇰", "🇩🇯", "🇩🇲", "🇩🇴", "🇪🇨", "🇪🇬", "🇸🇻", "🇬🇶", "🇪🇷", "🇪🇪", "🇪🇹", "🇫🇰", "🇫🇴", "🇫🇯", "🇫🇮", "🇫🇷", "🇬🇫", "🇵🇫", "🇹🇫", "🇬🇦", "🇬🇲", "🇬🇪", "🇩🇪", "🇬🇭", "🇬🇮", "🇬🇷", "🇬🇱", "🇬🇩", "🇬🇵", "🇬🇺", "🇬🇹", "🇬🇬", "🇬🇳", "🇬🇼", "🇬🇾", "🇭🇹", "🇭🇳", "🇭🇰", "🇭🇺", "🇮🇸", "🇮🇳", "🇮🇩", "🇮🇷", "🇮🇶", "🇮🇪", "🇮🇲", "🇮🇹", "🇯🇲", "🇯🇵", "🇯🇪", "🇯🇴", "🇰🇿", "🇰🇪", "🇰🇮", "🇽🇰", "🇰🇼", "🇰🇬", "🇱🇦", "🇱🇻", "🇱🇧", "🇱🇸", "🇱🇷", "🇱🇾", "🇱🇮", "🇱🇹", "🇱🇺", "🇲🇴", "🇲🇰", "🇲🇬", "🇲🇼", "🇲🇾", "🇲🇻", "🇲🇱", "🇲🇹", "🇲🇭", "🇲🇶", "🇲🇷", "🇲🇺", "🇾🇹", "🇲🇽", "🇫🇲", "🇲🇩", "🇲🇨", "🇲🇳", "🇲🇪", "🇲🇸", "🇲🇦", "🇲🇿", "🇲🇲", "🇳🇦", "🇳🇷", "🇳🇵", "🇳🇱", "🇳🇨", "🇳🇿", "🇳🇮", "🇳🇪", "🇳🇬", "🇳🇺", "🇳🇫", "🇰🇵", "🇲🇵", "🇳🇴", "🇴🇲", "🇵🇰", "🇵🇼", "🇵🇸", "🇵🇦", "🇵🇬", "🇵🇾", "🇵🇪", "🇵🇭", "🇵🇳", "🇵🇱", "🇵🇹", "🇵🇷", "🇶🇦", "🇷🇪", "🇷🇴", "🇷🇺", "🇷🇼", "🇼🇸", "🇸🇲", "🇸🇦", "🇸🇳", "🇷🇸", "🇸🇨", "🇸🇱", "🇸🇬", "🇸🇽", "🇸🇰", "🇸🇮", "🇬🇸", "🇸🇧", "🇸🇴", "🇿🇦", "🇰🇷", "🇸🇸", "🇪🇸", "🇱🇰", "🇧🇱", "🇸🇭", "🇰🇳", "🇱🇨", "🇵🇲", "🇻🇨", "🇸🇩", "🇸🇷", "🇸🇿", "🇸🇪", "🇨🇭", "🇸🇾", "🇹🇼", "🇹🇯", "🇹🇿", "🇹🇭", "🇹🇱", "🇹🇬", "🇹🇰", "🇹🇴", "🇹🇹", "🇹🇳", "🇹🇷", "🇹🇲", "🇹🇨", "🇹🇻", "🇻🇮", "🇺🇬", "🇺🇦", "🇦🇪", "🇬🇧", "🇺🇳", "🇺🇸", "🇺🇾", "🇺🇿", "🇻🇺", "🇻🇦", "🇻🇪", "🇻🇳", "🇼🇫", "🇪🇭", "🇾🇪", "🇿🇲", "🇿🇼", "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "🏴󠁧󠁢󠁷󠁬󠁳󠁿"
+]
 
 def save_data(data):
     with open('players.json', 'w') as f: json.dump(data, f, indent=4)
@@ -25,28 +30,43 @@ def load_data():
         with open('players.json', 'r') as f: return json.load(f)
     return {}
 
-# --- (3) فحص صلاحيات المشرفين ---
-def is_admin():
-    async def predicate(ctx):
-        # البوت سيعتبرك مشرفاً إذا كنت صاحب السيرفر أو عندك صلاحية Administrator
-        return ctx.author.guild_permissions.administrator or ctx.author.id == ctx.guild.owner_id
-    return commands.check(predicate)
+# --- (3) قائمة الاختيارات (Dropdowns) ---
+class SelectionView(discord.ui.View):
+    def __init__(self, author, field, options):
+        super().__init__(timeout=60)
+        self.author = author
+        self.field = field
+        
+        select = discord.ui.Select(placeholder=f"Choose {field}...", options=[
+            discord.SelectOption(label=opt, value=opt) for opt in options
+        ])
+        select.callback = self.callback
+        self.add_item(select)
 
-# --- (4) الأوامر المطورة ---
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user != self.author: return
+        
+        data = load_data()
+        uid = str(interaction.user.id)
+        if uid not in data: data[uid] = {}
+        data[uid][self.field] = interaction.data['values'][0]
+        save_data(data)
+        
+        embed = discord.Embed(title="✅ Success!", description=f"Your {self.field} has been set to **{interaction.data['values'][0]}**.", color=discord.Color.green())
+        await interaction.response.edit_message(embed=embed, view=None)
 
-@bot.command(aliases=['profile'])
-async def p(ctx, member: discord.Member = None):
+# --- (4) الأوامر والمميزات ---
+
+@bot.command(aliases=['p'])
+async def profile(ctx, member: discord.Member = None):
     member = member or ctx.author
     data = load_data().get(str(member.id), {})
-    
-    # التحقق من رتبة التوثيق فعلياً في السيرفر
     has_verify_role = discord.utils.get(member.roles, name="Verified Player")
     
     joined = member.joined_at.strftime("%b %d, %Y") if member.joined_at else "-"
     reg = member.created_at.strftime("%b %d, %Y")
 
     embed = discord.Embed(title=f"👤 {member.display_name}'s profile", color=discord.Color.blue())
-    
     profile_info = (
         f"**PSN**: {data.get('psn', '-')}\n"
         f"**Country**: {data.get('country', '-')}\n"
@@ -56,10 +76,8 @@ async def p(ctx, member: discord.Member = None):
     )
     embed.add_field(name="👥 Profile", value=profile_info, inline=False)
     
-    # تعديل اسم الرانك وظهور علامة التوثيق
     game_data = f"**Ranked Name**: {data.get('ranked_name', '-')}\n**Consoles**: {data.get('consoles', '-')}"
-    if has_verify_role:
-        game_data += "\n**Verified Player** ✅"
+    if has_verify_role: game_data += "\n**Verified Player** ✅"
     
     embed.add_field(name="🎮 Game Data", value=game_data, inline=False)
     embed.set_thumbnail(url=member.display_avatar.url)
@@ -68,96 +86,89 @@ async def p(ctx, member: discord.Member = None):
 @bot.command()
 async def set_psn(ctx, psn_id: str):
     if not re.match(r"^[a-zA-Z0-9_-]+$", psn_id):
-        await ctx.send("❌ خطأ: الـ PSN لا يسمح بالمسافات أو الرموز الخاصة عدا (_) و (-).")
+        await ctx.send("❌ Error: PSN can only contain letters, numbers, (_) and (-).")
         return
-    players = load_data()
-    user_id = str(ctx.author.id)
-    if user_id not in players: players[user_id] = {}
-    players[user_id]["psn"] = psn_id
-    save_data(players)
-    await ctx.send("✅ تم تحديث الـ PSN")
+    data = load_data()
+    uid = str(ctx.author.id)
+    if uid not in data: data[uid] = {}
+    data[uid]["psn"] = psn_id
+    save_data(data)
+    await ctx.send(f"✅ PSN set to `{psn_id}`")
 
 @bot.command()
 async def set_flag(ctx, emoji: str):
-    players = load_data()
-    user_id = str(ctx.author.id)
-    if user_id not in players: players[user_id] = {}
-    players[user_id]["country"] = emoji
-    save_data(players)
-    await ctx.send("✅ تم تعيين العلم")
+    data = load_data()
+    uid = str(ctx.author.id)
+    if uid in data and "country" in data[uid]:
+        if not any(role.name == 'Mod' for role in ctx.author.roles):
+            await ctx.send("⚠️ You cannot change your flag. Contact a Mod.")
+            return
+    if emoji not in ALLOWED_FLAGS:
+        await ctx.send("❌ Error: Please use a valid country flag emoji.")
+        return
+    if uid not in data: data[uid] = {}
+    data[uid]["country"] = emoji
+    save_data(data)
+    await ctx.send(f"✅ Country set to {emoji}")
 
 @bot.command()
 async def set_nat(ctx):
-    options = ["NAT 1", "NAT 2 Close", "NAT 2 Open", "NAT 3"]
-    await ctx.send(f"الرجاء اختيار نوع الـ NAT كتابةً: `{', '.join(options)}`")
-    
-    def check(m): return m.author == ctx.author and m.content in options
-    msg = await bot.wait_for('message', check=check)
-    
-    players = load_data()
-    user_id = str(ctx.author.id)
-    if user_id not in players: players[user_id] = {}
-    players[user_id]["nat"] = msg.content
-    save_data(players)
-    await ctx.send(f"✅ تم اختيار {msg.content}")
+    embed = discord.Embed(title="ℹ️ Info", description="Please select NAT type.", color=discord.Color.blue())
+    view = SelectionView(ctx.author, "nat", ["NAT 1", "NAT 2 Open", "NAT 2 Closed", "NAT 3"])
+    await ctx.send(embed=embed, view=view)
+
+@bot.command()
+async def set_consoles(ctx):
+    embed = discord.Embed(title="ℹ️ Info", description="Please select your console.", color=discord.Color.blue())
+    view = SelectionView(ctx.author, "consoles", ["PS4", "PS5"])
+    await ctx.send(embed=embed, view=view)
 
 @bot.command()
 async def set_ranked_name(ctx, name: str):
     if not name.isalnum():
-        await ctx.send("❌ خطأ: الاسم يجب أن يكون بدون مسافات أو رموز.")
+        await ctx.send("❌ Error: Ranked Name must be without spaces or special characters.")
         return
-    
-    players = load_data()
-    user_id = str(ctx.author.id)
-    
-    if user_id in players and "ranked_name" in players[user_id]:
-        await ctx.send("⚠️ لا يمكنك تغيير اسمك، تواصل مع المشرفين.")
+    data = load_data()
+    uid = str(ctx.author.id)
+    if uid in data and "ranked_name" in data[uid]:
+        await ctx.send("⚠️ You cannot change your name. Contact a Mod.")
         return
-        
-    if user_id not in players: players[user_id] = {}
-    players[user_id]["ranked_name"] = name
-    save_data(players)
-    await ctx.send(f"✅ تم تسجيل اسم الرانك: {name}")
+    if uid not in data: data[uid] = {}
+    data[uid]["ranked_name"] = name
+    save_data(data)
+    await ctx.send(f"✅ Ranked Name set to `{name}`")
+
+# --- (5) أوامر المشرفين (رتبة Mod) ---
 
 @bot.command()
-async def set_consoles(ctx):
-    options = ["PS4", "PS5"]
-    await ctx.send("اختر منصتك كتابةً: `PS4` أو `PS5`")
-    
-    def check(m): return m.author == ctx.author and m.content.upper() in options
-    msg = await bot.wait_for('message', check=check)
-    
-    players = load_data()
-    user_id = str(ctx.author.id)
-    if user_id not in players: players[user_id] = {}
-    players[user_id]["consoles"] = msg.content.upper()
-    save_data(players)
-    await ctx.send(f"✅ تم تحديث المنصة")
-
-# --- (5) أوامر المشرفين (Admin Only) ---
-
-@bot.command()
-@is_admin()
-async def admin_set(ctx, member: discord.Member, field: str, *, value: str):
-    # يسمح للمشرف بتغيير أي شيء: psn, ranked_name, country, nat, consoles
-    players = load_data()
-    user_id = str(member.id)
-    if user_id not in players: players[user_id] = {}
-    players[user_id][field] = value
-    save_data(players)
-    await ctx.send(f"✅ تم تعديل `{field}` للعضو {member.display_name}")
-
-@bot.command()
-@is_admin()
 async def verify(ctx, member: discord.Member):
-    role = discord.utils.get(ctx.guild.roles, name="Verified Player")
-    if not role:
-        await ctx.send("❌ رتبة `Verified Player` غير موجودة!")
+    if not any(role.name == 'Mod' for role in ctx.author.roles):
+        await ctx.send("❌ This command is for **Mods** only.")
         return
-    await member.add_roles(role)
-    await ctx.send(f"✅ تم توثيق {member.mention} وظهور العلامة في بروفايله.")
+    role = discord.utils.get(ctx.guild.roles, name="Verified Player")
+    if role: await member.add_roles(role)
+    await ctx.send(f"✅ {member.mention} has been verified.")
 
-# --- (6) التشغيل ---
+@bot.command()
+async def set_name_ranked(ctx, member: discord.Member, name: str):
+    if not any(role.name == 'Mod' for role in ctx.author.roles):
+        await ctx.send("❌ For **Mods** only.")
+        return
+    data = load_data()
+    uid = str(member.id)
+    if uid not in data: data[uid] = {}
+    data[uid]["ranked_name"] = name
+    save_data(data)
+    await ctx.send(f"✅ Ranked Name for {member.display_name} updated to `{name}`")
+
+# --- (6) معالج الأخطاء ---
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send("❌ Error: This command does not exist.")
+    else:
+        await ctx.send(f"⚠️ An error occurred: {str(error)}")
+
 if __name__ == "__main__":
     keep_alive()
     bot.run(os.getenv("TOKEN"))
