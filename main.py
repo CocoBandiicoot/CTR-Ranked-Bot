@@ -149,9 +149,227 @@ async def admin_set(ctx, member: discord.Member, field: str, *, value: str):
     data[uid][field] = value
     save_data(data)
     await send_success_embed(ctx, "Admin Override", f"Updated `{field}` for {member.display_name} to `{value}`")
+@bot.command()
+async def update_scores(ctx, member: discord.Member, amount: str):
+    # مسموح للـ Mods فقط
+    if not any(r.name == 'Mod' for r in ctx.author.roles):
+        return await ctx.send("❌ This command is for **Mods** only.")
+    
+    data = load_data()
+    uid = str(member.id)
+    if uid not in data: data[uid] = {"points": 1200}
+    
+    current_pts = data[uid].get('points', 1200)
+    
+    # حساب النقاط الجديدة (مثال: +60 أو -60)
+    try:
+        if amount.startswith('+'):
+            new_pts = current_pts + int(amount[1:])
+        elif amount.startswith('-'):
+            new_pts = current_pts - int(amount[1:])
+        else:
+            new_pts = int(amount)
+            
+        data[uid]['points'] = max(1, new_pts) # لا ينقص عن 1
+        save_data(data)
+        await ctx.send(f"✅ Updated {member.display_name}'s score to **[{data[uid]['points']}]**")
+    except:
+        await ctx.send("❌ Error: Use format like !update_scores @user +60")
 
 # ==========================================
-# (6) منطقة إضافة الكوماندات الجديدة - أضف هنا مستقبلاً
+# (7) منطقة اللوبيات - أضف هنا مستقبلاً
+# ==========================================
+# --- الإعدادات ---
+intents = discord.Intents.all()
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+# قائمة المابات (RNG Tracks)
+TRACKS = [
+    "Crash Cove", "Mystery Caves", "Sewer Speedway", "Roo's Tubes", "Slide Coliseum", "Turbo Track", 
+    "Coco Park", "Tiger Temple", "Papu's Pyramid", "Dingo Canyon", "Polar Pass", "Tiny Arena", 
+    "Dragon Mines", "Blizzard Bluff", "Hot Air Skyway", "Cortex Castle", "N.Gin Labs", "Oxide Station", 
+    "Inferno Island", "Jungle Boogie", "Clockwork Wumpa", "Android Alley", "Electron Avenue", 
+    "Deep Sea Driving", "Thunder Struck", "Tiny Temple", "Meteor Gorge", "Barin Ruins", "Out of Time", 
+    "Assembly Lane", "Twilight Tour", "Prehistoric Playground", "Spyro Circuit", "Nina's Nightmare", 
+    "Koala Carnival", "Gingerbread Joyride", "Megamix Mania", "Drive-Thru Danger", "Retro Stadium"
+]
+
+# قاموس تحويل الأعلام لرموز Lorenzi (sa, kw...)
+FLAG_CODES = {
+    "🇸🇦": "sa", "🇰🇼": "kw", "🇦🇪": "ae", "🇶🇦": "qa", "🇧🇭": "bh", 
+    "🇴🇲": "om", "🇪🇬": "eg", "🇩🇿": "dz", "🇲🇦": "ma" # أضف البقية هنا بنفس النمط
+}
+def load_data():
+    if os.path.exists('players.json'):
+        with open('players.json', 'r') as f: return json.load(f)
+    return {}
+
+def save_data(data):
+    with open('players.json', 'w') as f: json.dump(data, f, indent=4)
+
+active_lobbies = {} # لتخزين بيانات اللوبيات
+# --- دالة توليد ID عشوائي للوبي ---
+# دالة توليد ID عشوائي للوبي
+def generate_lobby_id():
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=16))
+
+# دالة اختيار المابات عشوائياً حسب الطور
+def get_random_tracks(mode):
+    pool = TRACKS.copy()
+    random.shuffle(pool)
+    if mode == "4v4":
+        return pool[:10]
+    elif mode == "Itemless":
+        return pool[:6]
+    else:
+        return pool[:8]
+
+# دالة تحويل علم الإيموجي إلى رمز Lorenzi (ISO)
+def get_flag_code(emoji):
+    return FLAG_CODES.get(emoji, "un") # "un" للغير معروف
+
+# قائمة الأطوار المتاحة
+LOBBY_MODES = ["FFA", "Duo", "3v3", "4v4", "Itemless"]
+
+class LobbySelectMenu(discord.ui.Select):
+    def __init__(self, author):
+        options = [discord.SelectOption(label=m) for m in LOBBY_MODES]
+        super().__init__(placeholder="Choose...", options=options)
+        self.author = author
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user != self.author: return
+        mode = self.values[0]
+        lobby_id = generate_lobby_id()
+        
+        # تخزين اللوبي في الذاكرة
+        active_lobbies[lobby_id] = {
+            "host": interaction.user.id,
+            "mode": mode,
+            "players": [interaction.user.id],
+            "created_at": datetime.datetime.now(),
+            "channel_id": interaction.channel.id,
+            "started": False,
+            "warned": False
+        }
+
+        embed = discord.Embed(
+            title="✅ Lobby Created!",
+            description=f"Type: **{mode}**\nID: `{lobby_id}`\n\nاللوبي جاهز الآن في قائمة الانتظار.",
+            color=discord.Color.blue()
+        )
+        await interaction.response.edit_message(embed=embed, view=None)
+
+class LobbyCreateView(discord.ui.View):
+    def __init__(self, author):
+        super().__init__(timeout=60)
+        self.author = author
+        self.add_item(LobbySelectMenu(author))
+
+    async def on_timeout(self):
+        # الصورة الثالثة (انتهاء الوقت)
+        try:
+            embed = discord.Embed(description="❌ **Lobby creation timed out.**", color=discord.Color.red())
+            await self.message.edit(content=None, embed=embed, view=None)
+        except: pass
+
+@bot.command()
+async def l(ctx):
+    # 1. فحص الروم
+    if ctx.channel.name != "matchmaking-general":
+        return await ctx.send("❌ هذا الأمر مخصص لغرفة الماتش ميكنق فقط (#matchmaking-general).")
+
+    # 2. فحص الرتبة
+    if not discord.utils.get(ctx.author.roles, name="Verified Player"):
+        return await ctx.send("❌ يجب أن تكون لاعب موثق (Verified Player) لتتمكن من إنشاء لوبي.")
+
+    # 3. فحص عدد اللوبيات المنشأة (بحد أقصى 2)
+    user_lobbies = [lid for lid, l in active_lobbies.items() if l['host'] == ctx.author.id]
+    if len(user_lobbies) >= 2:
+        return await ctx.send("❌ Rejected: You already have 2 active lobbies.")
+
+    # 4. إرسال القائمة
+    embed = discord.Embed(title="🎮 Select Lobby Category", description="Choose the gamemode below:", color=discord.Color.blue())
+    view = LobbyCreateView(ctx.author)
+    view.message = await ctx.send(embed=embed, view=view)
+
+# أمر إنهاء اللوبي
+@bot.command()
+async def l_end(ctx, lobby_id: str = None):
+    # التحقق إذا كان الشخص Mod يقدر ينهي أي لوبي بالـ ID
+    is_mod = any(r.name == 'Mod' for r in ctx.author.roles)
+    
+    if is_mod and lobby_id:
+        if lobby_id in active_lobbies:
+            del active_lobbies[lobby_id]
+            return await ctx.send(f"✅ Lobby `{lobby_id}` has been terminated by Mod.")
+        else:
+            return await ctx.send("❌ Lobby ID not found.")
+
+    # إذا كان لاعب عادي يبي ينهي اللوبي (يحتاج تصويت أو وقت)
+    # سيتم إضافة تفاصيل التصويت 6 أشخاص هنا في التحديث القادم
+    await ctx.send("⚠️ نظام التصويت قيد البرمجة، حالياً اطلب من Mod الإنهاء.")
+# --- دالة فحص اكتمال بيانات اللاعب ---
+async def check_player_data(member):
+    data = load_data().get(str(member.id), {})
+    missing = []
+    if not data.get('psn'): missing.append("PSN (!set_psn)")
+    if not data.get('country'): missing.append("Country Flag (!set_flag)")
+    if not data.get('ranked_name'): missing.append("Ranked Name (!set_ranked_name)")
+    return missing
+
+class LobbyJoinView(discord.ui.View):
+    def __init__(self, lobby_id):
+        super().__init__(timeout=None) # يبقى شغال لين ينتهي اللوبي
+        self.lobby_id = lobby_id
+
+    @discord.ui.button(label="Join", style=discord.ButtonStyle.green, custom_id="join_btn")
+    async def join(self, interaction: discord.Interaction):
+        lobby = active_lobbies.get(self.lobby_id)
+        if not lobby: return await interaction.response.send_message("Lobby expired.", ephemeral=True)
+
+        # 1. فحص البيانات الناقصة
+        missing = await check_player_data(interaction.user)
+        if missing:
+            # إرسال تنبيه في روم matchmaking-notifications كما طلبت بالصورة
+            notif_channel = discord.utils.get(interaction.guild.channels, name="matchmaking-notifications")
+            if notif_channel:
+                msg = f"⚠️ {interaction.user.mention}, you can't join. Missing: {', '.join(missing)}"
+                await notif_channel.send(msg)
+            return await interaction.response.send_message("بياناتك ناقصة! شيك على قسم التنبيهات.", ephemeral=True)
+
+        # 2. فحص إذا كان في فريق أو شريك (لأطوار Duo/3v3/4v4)
+        # (هنا يتم التحقق من الـ Partner اللي سويناه في !set_partner)
+        if interaction.user.id in lobby['players']:
+            return await interaction.response.send_message("أنت موجود بالفعل في اللوبي.", ephemeral=True)
+
+        lobby['players'].append(interaction.user.id)
+        await interaction.response.edit_message(content=f"اللاعبين الحاليين: {len(lobby['players'])}")
+
+    @discord.ui.button(label="Leave", style=discord.ButtonStyle.red, custom_id="leave_btn")
+    async def leave(self, interaction: discord.Interaction):
+        lobby = active_lobbies.get(self.lobby_id)
+        if interaction.user.id in lobby['players']:
+            lobby['players'].remove(interaction.user.id)
+            await interaction.response.edit_message(content=f"اللاعبين الحاليين: {len(lobby['players'])}")
+        else:
+            await interaction.response.send_message("أنت لست في اللوبي.", ephemeral=True)
+# تعديل بسيط لربط الفرق بالأطوار
+@bot.command()
+async def set_partner(ctx, partner: discord.Member):
+    # فحص إذا كان اللاعب في طور Duo أصلاً
+    # (هنا نضع منطق المنشن والرياكشن اللي أرسلته لك فوق)
+    # ملاحظة: أضف شرط أن هذا لا يعمل إلا لطور Duo فقط
+    pass
+
+@bot.command()
+async def set_team(ctx, p1: discord.Member, p2: discord.Member, p3: discord.Member = None):
+    # هذا الأمر لا يعمل في Duo
+    # يرسل التنبيهات ويطلب ✅ من الجميع خلال دقيقة
+    pass
+    
+# ==========================================
+# (8) منطقة إضافة الكوماندات الجديدة - أضف هنا مستقبلاً
 # ==========================================
 
 # مثال:
