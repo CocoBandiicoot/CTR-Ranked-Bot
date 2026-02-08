@@ -120,6 +120,7 @@ async def set_ranked_name(ctx, name: str):
     data[uid]["ranked_name"] = name
     save_data(data)
     await send_success_embed(ctx, "Ranked Name Set", f"Your ranked name is now `{name}`")
+    
 @bot.command(aliases=['p'])
 async def profile(ctx, member: discord.Member = None):
     member = member or ctx.author
