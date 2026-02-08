@@ -120,6 +120,38 @@ async def set_ranked_name(ctx, name: str):
     data[uid]["ranked_name"] = name
     save_data(data)
     await send_success_embed(ctx, "Ranked Name Set", f"Your ranked name is now `{name}`")
+@bot.command(aliases=['p'])
+async def profile(ctx, member: discord.Member = None):
+    member = member or ctx.author
+    
+    # 1. تحميل البيانات
+    data = load_data()
+    user_id = str(member.id)
+    
+    # 2. جلب بيانات اللاعب أو وضع قيم افتراضية إذا كان جديد
+    user_data = data.get(user_id, {})
+    
+    pts = user_data.get('points', 1200) # القيمة الافتراضية 1200
+    psn = user_data.get('psn', 'Not Set')
+    flag = user_data.get('country', '🏳️')
+    r_name = user_data.get('ranked_name', 'Not Set')
+    nat = user_data.get('nat_type', 'Unknown')
+
+    # 3. بناء الإمبيد (Embed) بشكل مرتب
+    embed = discord.Embed(
+        title=f"{flag} {member.display_name}'s Profile", 
+        color=discord.Color.blue()
+    )
+    embed.set_thumbnail(url=member.display_avatar.url)
+    
+    embed.add_field(name="📊 MMR Points", value=f"**[{pts}]**", inline=False)
+    embed.add_field(name="🎮 PSN ID", value=psn, inline=True)
+    embed.add_field(name="📛 Ranked Name", value=r_name, inline=True)
+    embed.add_field(name="📡 NAT Type", value=nat, inline=True)
+    
+    embed.set_footer(text=f"Requested by {ctx.author.name}")
+    
+    await ctx.send(embed=embed)
 
 # --- (5) أوامر المشرفين (رتبة Mod فقط) ---
 
