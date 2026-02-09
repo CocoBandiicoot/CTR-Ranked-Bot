@@ -1,24 +1,33 @@
-import re
 import discord
 from discord.ext import commands
-import os
-import json
+import os, json, re, random, datetime
 from threading import Thread
 from flask import Flask
 
-# --- (1) نظام الـ Uptime ---
+# --- (1) Uptime System ---
 app = Flask('')
 @app.route('/')
 def home(): return "Bot is Online 🚀"
 def run(): app.run(host='0.0.0.0', port=8000)
 def keep_alive(): Thread(target=run).start()
 
-# --- (2) الإعدادات وقاعدة البيانات ---
+# --- (2) الإعدادات والأذونات ---
 intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
-intents.members = True  # ضروري عشان رتبة Verified والبروفايل
-intents.reactions = True # ضروري عشان نظام الـ Join و الـ End بالرياكشن
+intents.members = True
+intents.reactions = True
+
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+# --- (3) قاعدة البيانات ---
+def save_data(data):
+    with open('players.json', 'w') as f: json.dump(data, f, indent=4)
+
+def load_data():
+    if os.path.exists('players.json'):
+        with open('players.json', 'r') as f: return json.load(f)
+    return {}
 
 ALLOWED_FLAGS = ["🇦🇫", "🇩🇿", "🇦🇸", "🇦🇩", "🇦🇴", "🇦🇮", "🇦🇬", "🇦🇷", "🇦🇲", "🇦🇼", "🇦🇺", "🇦🇹", "🇦🇿", "🇧🇸", "🇧🇭", "🇧🇩", "🇧🇧", "🇧🇾", "🇧🇪", "🇧🇿", "🇧🇯", "🇧🇲", "🇧🇹", "🇧🇴", "🇧🇦", "🇧🇼", "🇧🇷", "🇮🇨", "🇨🇻", "🇨🇦", "🇨🇱", "🇨🇳", "🇨🇴", "🇰🇲", "🇨🇬", "🇨🇩", "🇨🇷", "🇨🇮", "🇭🇷", "🇨🇺", "🇨🇼", "🇨🇾", "🇨🇿", "🇩🇰", "🇩🇯", "🇩🇲", "🇩🇴", "🇪🇨", "🇪🇬", "🇸🇻", "🇬🇶", "🇪🇷", "🇪🇪", "🇪🇹", "🇫🇯", "🇫🇮", "🇫🇷", "🇬🇦", "🇬🇲", "🇬🇪", "🇩🇪", "🇬🇭", "🇬🇮", "🇬🇷", "🇬🇱", "🇬🇩", "🇬🇵", "🇬🇺", "🇬🇹", "🇬🇳", "🇬🇼", "🇬🇾", "🇭🇹", "🇭🇳", "🇭🇰", "🇭🇺", "🇮🇸", "🇮🇳", "🇮🇩", "🇮🇷", "🇮🇶", "🇮🇪", "🇮🇹", "🇯🇲", "🇯🇵", "🇯🇴", "🇰🇿", "🇰🇪", "🇰🇼", "🇰🇬", "🇱🇦", "🇱🇻", "🇱🇧", "🇱🇸", "🇱🇷", "🇱🇾", "🇱🇮", "🇱🇹", "🇱🇺", "🇲🇴", "🇲🇰", "🇲🇬", "🇲🇼", "🇲🇾", "🇲🇻", "🇲🇱", "🇲🇹", "🇲🇽", "🇲🇩", "🇲🇨", "🇲🇳", "🇲🇪", "🇲🇦", "🇲🇿", "🇲🇲", "🇳🇦", "🇳🇵", "🇳🇱", "🇳🇿", "🇳🇮", "🇳🇪", "🇳🇬", "🇰🇵", "🇳🇴", "🇴🇲", "🇵🇰", "🇵🇼", "🇵🇸", "🇵🇦", "🇵🇬", "🇵🇾", "🇵🇪", "🇵🇭", "🇵🇱", "🇵🇹", "🇵🇷", "🇶🇦", "🇷🇴", "🇷🇺", "🇷🇼", "🇸🇲", "🇸🇦", "🇸🇳", "🇷🇸", "🇸🇨", "🇸🇱", "🇸🇬", "🇸🇰", "🇸🇮", "🇸🇧", "🇸🇴", "🇿🇦", "🇰🇷", "🇸🇸", "🇪🇸", "🇱🇰", "🇸🇩", "🇸🇷", "🇸🇿", "🇸🇪", "🇨🇭", "🇸🇾", "🇹🇼", "🇹🇯", "🇹🇿", "🇹🇭", "🇹🇱", "🇹🇬", "🇹🇴", "🇹🇹", "🇹🇳", "🇹🇷", "🇹🇲", "🇹🇻", "🇺🇬", "🇺🇦", "🇦🇪", "🇬🇧", "🇺🇳", "🇺🇸", "🇺🇾", "🇺🇿", "🇻🇺", "🇻🇦", "🇻🇪", "🇻🇳", "🇾🇪", "🇿🇲", "🇿🇼"]
 
@@ -94,8 +103,11 @@ async def profile(ctx, member: discord.Member = None):
     
     embed.add_field(name="🎮 Game Data", value=game_data, inline=False)
     embed.set_thumbnail(url=member.display_avatar.url)
+        # ... الكود اللي كتبته في الصورة 9 ...
+    embed.add_field(name="🎮 Game Data", value=game_data, inline=False)
+    embed.set_thumbnail(url=member.display_avatar.url) # إضافة الصورة الشخصية
     
-    await ctx.send(embed=embed)
+    await ctx.send(embed=embed) # هذا أهم سطر عشان تطلع الرسالة!
 
 @bot.command()
 async def set_psn(ctx, psn_id: str):
@@ -148,7 +160,26 @@ async def set_ranked_name(ctx, name: str):
     data[uid]["ranked_name"] = name
     save_data(data)
     await send_success_embed(ctx, "Ranked Name Set", f"Your ranked name is now `{name}`")
+    @bot.command()
+async def update_points(ctx, member: discord.Member, amount: int):
+    # التحقق من رتبة مود
+    if not any(role.name == 'Mod' for role in ctx.author.roles):
+        return await ctx.send("❌ هذا الأمر للمشرفين فقط!")
+
+    data = load_data()
+    user_id = str(member.id)
     
+    if user_id not in data:
+        data[user_id] = {"points": 1200}
+        
+    # تعديل النقاط (إضافة أو طرح)
+    current_pts = data[user_id].get('points', 1200)
+    new_pts = current_pts + amount
+    data[user_id]['points'] = new_pts
+    
+    save_data(data)
+    await ctx.send(f"✅ تم تحديث نقاط {member.mention}. النقاط الحالية: **[{new_pts}]**")
+
 # --- (5) أوامر المشرفين (رتبة Mod فقط) ---
 
 @bot.command()
