@@ -56,6 +56,7 @@ class DropdownMenu(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=None)
 
 # --- (4) الأوامر الأساسية للاعبين ---
+
 @bot.command(aliases=['p'])
 async def profile(ctx, member: discord.Member = None):
     member = member or ctx.author
