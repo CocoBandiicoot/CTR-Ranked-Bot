@@ -31,14 +31,6 @@ def load_data():
 
 ALLOWED_FLAGS = ["🇦🇫", "🇩🇿", "🇦🇸", "🇦🇩", "🇦🇴", "🇦🇮", "🇦🇬", "🇦🇷", "🇦🇲", "🇦🇼", "🇦🇺", "🇦🇹", "🇦🇿", "🇧🇸", "🇧🇭", "🇧🇩", "🇧🇧", "🇧🇾", "🇧🇪", "🇧🇿", "🇧🇯", "🇧🇲", "🇧🇹", "🇧🇴", "🇧🇦", "🇧🇼", "🇧🇷", "🇮🇨", "🇨🇻", "🇨🇦", "🇨🇱", "🇨🇳", "🇨🇴", "🇰🇲", "🇨🇬", "🇨🇩", "🇨🇷", "🇨🇮", "🇭🇷", "🇨🇺", "🇨🇼", "🇨🇾", "🇨🇿", "🇩🇰", "🇩🇯", "🇩🇲", "🇩🇴", "🇪🇨", "🇪🇬", "🇸🇻", "🇬🇶", "🇪🇷", "🇪🇪", "🇪🇹", "🇫🇯", "🇫🇮", "🇫🇷", "🇬🇦", "🇬🇲", "🇬🇪", "🇩🇪", "🇬🇭", "🇬🇮", "🇬🇷", "🇬🇱", "🇬🇩", "🇬🇵", "🇬🇺", "🇬🇹", "🇬🇳", "🇬🇼", "🇬🇾", "🇭🇹", "🇭🇳", "🇭🇰", "🇭🇺", "🇮🇸", "🇮🇳", "🇮🇩", "🇮🇷", "🇮🇶", "🇮🇪", "🇮🇹", "🇯🇲", "🇯🇵", "🇯🇴", "🇰🇿", "🇰🇪", "🇰🇼", "🇰🇬", "🇱🇦", "🇱🇻", "🇱🇧", "🇱🇸", "🇱🇷", "🇱🇾", "🇱🇮", "🇱🇹", "🇱🇺", "🇲🇴", "🇲🇰", "🇲🇬", "🇲🇼", "🇲🇾", "🇲🇻", "🇲🇱", "🇲🇹", "🇲🇽", "🇲🇩", "🇲🇨", "🇲🇳", "🇲🇪", "🇲🇦", "🇲🇿", "🇲🇲", "🇳🇦", "🇳🇵", "🇳🇱", "🇳🇿", "🇳🇮", "🇳🇪", "🇳🇬", "🇰🇵", "🇳🇴", "🇴🇲", "🇵🇰", "🇵🇼", "🇵🇸", "🇵🇦", "🇵🇬", "🇵🇾", "🇵🇪", "🇵🇭", "🇵🇱", "🇵🇹", "🇵🇷", "🇶🇦", "🇷🇴", "🇷🇺", "🇷🇼", "🇸🇲", "🇸🇦", "🇸🇳", "🇷🇸", "🇸🇨", "🇸🇱", "🇸🇬", "🇸🇰", "🇸🇮", "🇸🇧", "🇸🇴", "🇿🇦", "🇰🇷", "🇸🇸", "🇪🇸", "🇱🇰", "🇸🇩", "🇸🇷", "🇸🇿", "🇸🇪", "🇨🇭", "🇸🇾", "🇹🇼", "🇹🇯", "🇹🇿", "🇹🇭", "🇹🇱", "🇹🇬", "🇹🇴", "🇹🇹", "🇹🇳", "🇹🇷", "🇹🇲", "🇹🇻", "🇺🇬", "🇺🇦", "🇦🇪", "🇬🇧", "🇺🇳", "🇺🇸", "🇺🇾", "🇺🇿", "🇻🇺", "🇻🇦", "🇻🇪", "🇻🇳", "🇾🇪", "🇿🇲", "🇿🇼"]
 
-def save_data(data):
-    with open('players.json', 'w') as f: json.dump(data, f, indent=4)
-
-def load_data():
-    if os.path.exists('players.json'):
-        with open('players.json', 'r') as f: return json.load(f)
-    return {}
-
 # دالة مساعدة للردود الموحدة (Embed)
 async def send_success_embed(ctx, title, message):
     embed = discord.Embed(title=f"✅ {title}", description=message, color=discord.Color.blue())
@@ -73,19 +65,19 @@ async def profile(ctx, member: discord.Member = None):
     # 1. تحميل البيانات (التأكد من جلب القاموس)
     all_data = load_data()
     data = all_data.get(str(member.id), {})
+   @bot.command(aliases=['p'])
+async def profile(ctx, member: discord.Member = None):
+    member = member or ctx.author
+    all_data = load_data()
+    data = all_data.get(str(member.id), {})
     
-    # 2. التحقق من الرتبة والتواريخ
     has_verify_role = discord.utils.get(member.roles, name="Verified Player")
     joined = member.joined_at.strftime("%b %d, %Y") if member.joined_at else "-"
     reg = member.created_at.strftime("%b %d, %Y")
-    
-    # 3. جلب النقاط (MMR) - القيمة الافتراضية 1200
     pts = data.get('points', 1200)
-    
-    # 4. بناء الـ Embed
+
     embed = discord.Embed(title=f"👤 {member.display_name}'s profile", color=discord.Color.blue())
     
-    # قسم الـ Profile (أضفنا النقاط في البداية)
     profile_val = (
         f"**MMR Points**: [{pts}]\n"
         f"**PSN**: {data.get('psn', '-')}\n"
@@ -96,30 +88,14 @@ async def profile(ctx, member: discord.Member = None):
     )
     embed.add_field(name="👥 Profile", value=profile_val, inline=False)
     
-    # قسم الـ Game Data
     game_data = f"**Ranked Name**: {data.get('ranked_name', '-')}\n**Consoles**: {data.get('consoles', '-')}"
     if has_verify_role: 
         game_data += "\n**Verified Player** ✅"
     
     embed.add_field(name="🎮 Game Data", value=game_data, inline=False)
     embed.set_thumbnail(url=member.display_avatar.url)
-        # ... الكود اللي كتبته في الصورة 9 ...
-    embed.add_field(name="🎮 Game Data", value=game_data, inline=False)
-    embed.set_thumbnail(url=member.display_avatar.url) # إضافة الصورة الشخصية
     
-    await ctx.send(embed=embed) # هذا أهم سطر عشان تطلع الرسالة!
-
-@bot.command()
-async def set_psn(ctx, psn_id: str):
-    if not re.match(r"^[a-zA-Z0-9_-]+$", psn_id):
-        await ctx.send("❌ Error: PSN can only contain letters, numbers, (_) and (-).")
-        return
-    data = load_data()
-    uid = str(ctx.author.id)
-    if uid not in data: data[uid] = {}
-    data[uid]["psn"] = psn_id
-    save_data(data)
-    await send_success_embed(ctx, "PSN Updated", f"Your PSN has been set to `{psn_id}`")
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def set_flag(ctx, emoji: str):
@@ -160,9 +136,10 @@ async def set_ranked_name(ctx, name: str):
     data[uid]["ranked_name"] = name
     save_data(data)
     await send_success_embed(ctx, "Ranked Name Set", f"Your ranked name is now `{name}`")
+    
     @bot.command()
 async def update_points(ctx, member: discord.Member, amount: int):
-    # التحقق من رتبة مود
+    # لازم يكون فيه فراغ (4 مسافات) في بداية كل سطر تحت الـ async def
     if not any(role.name == 'Mod' for role in ctx.author.roles):
         return await ctx.send("❌ هذا الأمر للمشرفين فقط!")
 
@@ -171,14 +148,12 @@ async def update_points(ctx, member: discord.Member, amount: int):
     
     if user_id not in data:
         data[user_id] = {"points": 1200}
-        
-    # تعديل النقاط (إضافة أو طرح)
-    current_pts = data[user_id].get('points', 1200)
-    new_pts = current_pts + amount
-    data[user_id]['points'] = new_pts
-    
+    elif 'points' not in data[user_id]:
+        data[user_id]['points'] = 1200
+            
+    data[user_id]['points'] += amount
     save_data(data)
-    await ctx.send(f"✅ تم تحديث نقاط {member.mention}. النقاط الحالية: **[{new_pts}]**")
+    await ctx.send(f"✅ تم تحديث نقاط {member.mention}. النقاط الحالية: **[{data[user_id]['points']}]**")
 
 # --- (5) أوامر المشرفين (رتبة Mod فقط) ---
 
