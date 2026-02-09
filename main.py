@@ -178,6 +178,48 @@ async def update_points(ctx, member: discord.Member, amount: int):
 # ==========================================
 # (7) منطقة اللوبيات - أضف هنا مستقبلاً
 # ==========================================
+ # --- (7) إرسال دليل اللوبي تلقائياً ---
+
+@bot.event
+async def on_ready():
+    print(f'Logged in as {bot.user.name} 🚀')
+    
+    # حط هنا آيدي الروم حق اللوبيات
+    LOBBY_CHANNEL_ID = 123456789012345678  # <--- غير هذا الرقم للآيدي حقك
+    channel = bot.get_channel(LOBBY_CHANNEL_ID)
+    
+    if channel:
+        # مسح الرسائل القديمة عشان ما يتكرر الدليل (اختياري)
+        # await channel.purge(limit=10) 
+        
+        guide_text = (
+            "**How to play ranked matchmaking**\n\n"
+            "Press the ✅ **Join** button to join a lobby queue, and wait for it to become full.\n"
+            "Press the ❌ **Leave** button to leave the lobby queue.\n\n"
+            "Do not join team based lobbies if you can't/aren't willing to communicate in **voice chat**.\n"
+            "Once a lobby has started you will be pinged in a dedicated **lobby-room** channel.\n"
+            "The **scorekeeper** and **host** will be decided. Do not press ✅ to volunteer for scorekeeping if you don't know how.\n"
+            "Find out the **PSN** of the host and join their lobby, or ask for an invite.\n\n"
+            "**Active lobbies are shown below**\n\n"
+            "**كيفية لعب المباريات المصنفة**\n\n"
+            "اضغط على زر ✅ **انضمام** للانضمام إلى قائمة انتظار الردهة، وانتظر حتى تكتمل.\n\n"
+            "اضغط على زر ❌ **مغادرة** لمغادرة قائمة انتظار الردهة.\n\n"
+            "لا تنضم إلى ردهات الفرق إذا لم تكن قادرًا على التواصل عبر **الدردشة الصوتية** أو لم تكن ترغب بذلك.\n\n"
+            "بمجرد بدء الردهة، ستتلقى إشعارًا في قناة **غرفة الردهة** المخصصة.\n\n"
+            "سيتم تحديد **مسجل النقاط** و**المضيف**. لا تضغط على ✅ للتطوع لتسجيل النقاط إذا كنت لا تعرف كيفية القيام بذلك.\n\n"
+            "ابحث عن **معرف PSN** الخاص بالمضيف وانضم إلى ردهته، أو اطلب دعوة.\n\n"
+            "**الردهات النشطة معروضة أدناه**"
+        )
+        
+        # البحث إذا كانت الرسالة مرسلة من قبل عشان ما يكررها كل شوي
+        async for message in channel.history(limit=20):
+            if "**How to play ranked matchmaking**" in message.content:
+                print("Guide already exists.")
+                return # إذا لقاها يوقف ما يرسل ثانية
+        
+        await channel.send(guide_text)
+        print("Lobby guide sent successfully!")
+
 # --- الإعدادات ---
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -196,7 +238,44 @@ TRACKS = [
 # قاموس تحويل الأعلام لرموز Lorenzi (sa, kw...)
 FLAG_CODES = {
     "🇸🇦": "sa", "🇰🇼": "kw", "🇦🇪": "ae", "🇶🇦": "qa", "🇧🇭": "bh", 
-    "🇴🇲": "om", "🇪🇬": "eg", "🇩🇿": "dz", "🇲🇦": "ma" # أضف البقية هنا بنفس النمط
+    "🇴🇲": "om", "🇪🇬": "eg", "🇩🇿": "dz", "🇲🇦": "ma", "🇮🇶": "iq", 
+    "🇯🇴": "jo", "🇱🇧": "lb", "🇱🇾": "ly", "🇵🇸": "ps", "🇸🇩": "sd", 
+    "🇸🇾": "sy", "🇹🇳": "tn", "🇾🇪": "ye", "🇲🇷": "mr", "🇸🇴": "so", 
+    "🇩🇯": "dj", "🇰🇲": "km", "🇦🇫": "af", "🇦🇱": "al", "🇦🇩": "ad", 
+    "🇦🇴": "ao", "🇦🇬": "ag", "🇦🇷": "ar", "🇦🇲": "am", "🇦🇺": "au", 
+    "🇦🇹": "at", "🇦🇿": "az", "🇧🇸": "bs", "🇧🇩": "bd", "🇧🇧": "bb", 
+    "🇧🇾": "by", "🇧🇪": "be", "🇧🇿": "bz", "🇧🇯": "bj", "🇧🇹": "bt", 
+    "🇧🇴": "bo", "🇧🇦": "ba", "🇧🇼": "bw", "🇧🇷": "br", "🇧🇳": "bn", 
+    "🇧🇬": "bg", "🇧🇫": "bf", "🇧🇮": "bi", "🇨🇻": "cv", "🇰🇭": "kh", 
+    "🇨🇲": "cm", "🇨🇦": "ca", "🇨🇫": "cf", "🇹🇩": "td", "🇨🇱": "cl", 
+    "🇨🇳": "cn", "🇨🇴": "co", "🇨🇬": "cg", "🇨🇷": "cr", "🇨🇮": "ci", 
+    "🇭🇷": "hr", "🇨🇺": "cu", "🇨🇾": "cy", "🇨🇿": "cz", "🇩🇰": "dk", 
+    "🇩🇲": "dm", "🇩🇴": "do", "🇪🇨": "ec", "🇸🇻": "sv", "🇬🇶": "gq", 
+    "🇪🇷": "er", "🇪🇪": "ee", "🇸🇿": "sz", "🇪🇹": "et", "🇫🇯": "fj", 
+    "🇫🇮": "fi", "🇫🇷": "fr", "🇬🇦": "ga", "🇬🇲": "gm", "🇬🇪": "ge", 
+    "🇩🇪": "de", "🇬🇭": "gh", "🇬🇷": "gr", "🇬🇩": "gd", "🇬🇹": "gt", 
+    "🇬🇳": "gn", "🇬🇼": "gw", "🇬🇾": "gy", "🇭🇹": "ht", "🇭🇳": "hn", 
+    "🇭🇺": "hu", "🇮🇸": "is", "🇮🇳": "in", "🇮🇩": "id", "🇮🇷": "ir", 
+    "🇮🇪": "ie", "🇮🇹": "it", "🇯🇲": "jm", "🇯🇵": "jp", "🇰🇿": "kz", 
+    "🇰🇪": "ke", "🇰🇮": "ki", "🇰🇵": "kp", "🇰🇷": "kr", "🇰🇬": "kg", 
+    "🇱🇦": "la", "🇱🇻": "lv", "🇱🇸": "ls", "🇱🇷": "lr", "🇱🇮": "li", 
+    "🇱🇹": "lt", "🇱🇺": "lu", "🇲🇬": "mg", "🇲🇼": "mw", "🇲🇾": "my", 
+    "🇲🇻": "mv", "🇲🇱": "ml", "🇲🇹": "mt", "🇲🇭": "mh", "🇲🇺": "mu", 
+    "🇲🇽": "mx", "🇫🇲": "fm", "🇲🇩": "md", "🇲🇨": "mc", "🇲🇳": "mn", 
+    "🇲🇪": "me", "🇲🇿": "mz", "🇲🇲": "mm", "🇳🇦": "na", "🇳🇷": "nr", 
+    "🇳🇵": "np", "🇳🇱": "nl", "🇳🇿": "nz", "🇳🇮": "ni", "🇳🇪": "ne", 
+    "🇳🇬": "ng", "🇲🇰": "mk", "🇳🇴": "no", "🇵🇰": "pk", "🇵🇼": "pw", 
+    "🇵🇦": "pa", "🇵🇬": "pg", "🇵🇾": "py", "🇵🇪": "pe", "🇵🇭": "ph", 
+    "🇵🇱": "pl", "🇵🇹": "pt", "🇷🇴": "ro", "🇷🇺": "ru", "🇷🇼": "rw", 
+    "🇰🇳": "kn", "🇱🇨": "lc", "🇻🇨": "vc", "🇼🇸": "ws", "🇸🇲": "sm", 
+    "🇸🇹": "st", "🇸🇳": "sn", "🇷🇸": "rs", "🇸🇨": "sc", "🇸🇱": "sl", 
+    "🇸🇬": "sg", "🇸🇰": "sk", "🇸🇮": "si", "🇸🇧": "sb", "🇿🇦": "za", 
+    "🇪🇸": "es", "🇱🇰": "lk", "🇸🇷": "sr", "🇸🇪": "se", "🇨🇭": "ch", 
+    "🇹🇯": "tj", "🇹🇿": "tz", "🇹🇭": "th", "🇹🇱": "tl", "🇹🇬": "tg", 
+    "🇹🇴": "to", "🇹🇹": "tt", "🇹🇷": "tr", "🇹🇲": "tm", "🇹🇻": "tv", 
+    "🇺🇬": "ug", "🇺🇦": "ua", "🇬🇧": "gb", "🇺🇸": "us", "🇺🇾": "uy", 
+    "🇺🇿": "uz", "🇻🇺": "vu", "🇻🇪": "ve", "🇻🇳": "vn", "🇿🇲": "zm", 
+    "🇿🇼": "zw"
 }
 def load_data():
     if os.path.exists('players.json'):
