@@ -62,12 +62,10 @@ async def profile(ctx, member: discord.Member = None):
     member = member or ctx.author
         all_data = load_data()
         user_id = str(member.id)
-    
     # (1) التأكد من وجود البيانات أو إنشاءها
     if user_id not in all_data:
         all_data[user_id] = {"points": 1200}
         save_data(all_data)
-
     # (2) هنا السر: لازم ترجع المسافة لليسار عشان يقرأ البيانات دائماً
     data = all_data.get(user_id, {})
     pts = data.get('points', 1200)
