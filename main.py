@@ -60,10 +60,16 @@ class DropdownMenu(discord.ui.View):
 @bot.command(aliases=['p'])
 async def profile(ctx, member: discord.Member = None):
     member = member or ctx.author
-    all_data = load_data()
-    data = all_data.get(str(member.id), {})
-    
+        all_data = load_data()
+    user_id = str(member.id)
+    # التأكد أن اللاعب له بيانات حتى لو كان جديداً
+    if user_id not in all_data:
+        all_data[user_id] = {"points": 1200}
+        save_data(all_data) # حفظ البيانات الجديدة فوراً
+        
+    data = all_data.get(user_id, {})
     pts = data.get('points', 1200)
+
     has_verify_role = discord.utils.get(member.roles, name="Verified Player")
     joined = member.joined_at.strftime("%b %d, %Y") if member.joined_at else "-"
     reg = member.created_at.strftime("%b %d, %Y")
