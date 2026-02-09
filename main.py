@@ -17,6 +17,7 @@ intents.messages = True
 intents.message_content = True
 intents.members = True
 intents.reactions = True
+
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 ALLOWED_FLAGS = ["🇦🇫", "🇩🇿", "🇦🇸", "🇦🇩", "🇦🇴", "🇦🇮", "🇦🇬", "🇦🇷", "🇦🇲", "🇦🇼", "🇦🇺", "🇦🇹", "🇦🇿", "🇧🇸", "🇧🇭", "🇧🇩", "🇧🇧", "🇧🇾", "🇧🇪", "🇧🇿", "🇧🇯", "🇧🇲", "🇧🇹", "🇧🇴", "🇧🇦", "🇧🇼", "🇧🇷", "🇮🇨", "🇨🇻", "🇨🇦", "🇨🇱", "🇨🇳", "🇨🇴", "🇰🇲", "🇨🇬", "🇨🇩", "🇨🇷", "🇨🇮", "🇭🇷", "🇨🇺", "🇨🇼", "🇨🇾", "🇨🇿", "🇩🇰", "🇩🇯", "🇩🇲", "🇩🇴", "🇪🇨", "🇪🇬", "🇸🇻", "🇬🇶", "🇪🇷", "🇪🇪", "🇪🇹", "🇫🇯", "🇫🇮", "🇫🇷", "🇬🇦", "🇬🇲", "🇬🇪", "🇩🇪", "🇬🇭", "🇬🇮", "🇬🇷", "🇬🇱", "🇬🇩", "🇬🇵", "🇬🇺", "🇬🇹", "🇬🇳", "🇬🇼", "🇬🇾", "🇭🇹", "🇭🇳", "🇭🇰", "🇭🇺", "🇮🇸", "🇮🇳", "🇮🇩", "🇮🇷", "🇮🇶", "🇮🇪", "🇮🇹", "🇯🇲", "🇯🇵", "🇯🇴", "🇰🇿", "🇰🇪", "🇰🇼", "🇰🇬", "🇱🇦", "🇱🇻", "🇱🇧", "🇱🇸", "🇱🇷", "🇱🇾", "🇱🇮", "🇱🇹", "🇱🇺", "🇲🇴", "🇲🇰", "🇲🇬", "🇲🇼", "🇲🇾", "🇲🇻", "🇲🇱", "🇲🇹", "🇲🇽", "🇲🇩", "🇲🇨", "🇲🇳", "🇲🇪", "🇲🇦", "🇲🇿", "🇲🇲", "🇳🇦", "🇳🇵", "🇳🇱", "🇳🇿", "🇳🇮", "🇳🇪", "🇳🇬", "🇰🇵", "🇳🇴", "🇴🇲", "🇵🇰", "🇵🇼", "🇵🇸", "🇵🇦", "🇵🇬", "🇵🇾", "🇵🇪", "🇵🇭", "🇵🇱", "🇵🇹", "🇵🇷", "🇶🇦", "🇷🇴", "🇷🇺", "🇷🇼", "🇸🇲", "🇸🇦", "🇸🇳", "🇷🇸", "🇸🇨", "🇸🇱", "🇸🇬", "🇸🇰", "🇸🇮", "🇸🇧", "🇸🇴", "🇿🇦", "🇰🇷", "🇸🇸", "🇪🇸", "🇱🇰", "🇸🇩", "🇸🇷", "🇸🇿", "🇸🇪", "🇨🇭", "🇸🇾", "🇹🇼", "🇹🇯", "🇹🇿", "🇹🇭", "🇹🇱", "🇹🇬", "🇹🇴", "🇹🇹", "🇹🇳", "🇹🇷", "🇹🇲", "🇹🇻", "🇺🇬", "🇺🇦", "🇦🇪", "🇬🇧", "🇺🇳", "🇺🇸", "🇺🇾", "🇺🇿", "🇻🇺", "🇻🇦", "🇻🇪", "🇻🇳", "🇾🇪", "🇿🇲", "🇿🇼"]
@@ -55,20 +56,36 @@ class DropdownMenu(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=None)
 
 # --- (4) الأوامر الأساسية للاعبين ---
-
 @bot.command(aliases=['p'])
 async def profile(ctx, member: discord.Member = None):
     member = member or ctx.author
-    data = load_data().get(str(member.id), {})
+    all_data = load_data()
+    data = all_data.get(str(member.id), {})
+    
+    pts = data.get('points', 1200)
     has_verify_role = discord.utils.get(member.roles, name="Verified Player")
     joined = member.joined_at.strftime("%b %d, %Y") if member.joined_at else "-"
     reg = member.created_at.strftime("%b %d, %Y")
-embed = discord.Embed(title=f"👤 {member.display_name}'s profile", color=discord.Color.blue())
-    embed.add_field(name="👥 Profile", value=f"PSN: {data.get('psn', '-')}\nCountry: {data.get('country', '-')}\nNAT Type: {data.get('nat', '-')}\nJoined: {joined}\nRegistered: {reg}", inline=False)
-    game_data = f"Ranked Name: {data.get('ranked_name', '-')}\nConsoles: {data.get('consoles', '-')}"
-    if has_verify_role: game_data += "\nVerified Player ✅"
+
+    embed = discord.Embed(title=f"👤 {member.display_name}'s profile", color=discord.Color.blue())
+    
+    profile_val = (
+        f"**MMR Points**: [{pts}]\n"
+        f"**PSN**: {data.get('psn', '-')}\n"
+        f"**Country**: {data.get('country', '-')}\n"
+        f"**NAT Type**: {data.get('nat', '-')}\n"
+        f"**Joined**: {joined}\n"
+        f"**Registered**: {reg}"
+    )
+    embed.add_field(name="👥 Profile", value=profile_val, inline=False)
+    
+    game_data = f"**Ranked Name**: {data.get('ranked_name', '-')}\n**Consoles**: {data.get('consoles', '-')}"
+    if has_verify_role:
+        game_data += "\n**Verified Player** ✅"
+    
     embed.add_field(name="🎮 Game Data", value=game_data, inline=False)
     embed.set_thumbnail(url=member.display_avatar.url)
+    
     await ctx.send(embed=embed)
 
 @bot.command()
@@ -128,55 +145,28 @@ async def set_ranked_name(ctx, name: str):
 @bot.command()
 async def verify(ctx, member: discord.Member):
     if not any(role.name == 'Mod' for role in ctx.author.roles):
-        await ctx.send("❌ This command is for **Mods** only.")
-        return
-    role = discord.utils.get(ctx.guild.roles, name="Verified Player")
-    if role: 
-        await member.add_roles(role)
-        await send_success_embed(ctx, "Success!", f"{member.mention} has been verified.")
-    else: await ctx.send("❌ Role `Verified Player` not found.")
-
-@bot.command()
-async def admin_set(ctx, member: discord.Member, field: str, *, value: str):
-    if not any(role.name == 'Mod' for role in ctx.author.roles):
-        await ctx.send("❌ For **Mods** only.")
-        return
-    valid_fields = ["psn", "country", "nat", "consoles", "ranked_name"]
-    if field not in valid_fields:
-        await ctx.send(f"❌ Field must be one of: {', '.join(valid_fields)}")
-        return
-    data = load_data()
-    uid = str(member.id)
-    if uid not in data: data[uid] = {}
-    data[uid][field] = value
-    save_data(data)
-    await send_success_embed(ctx, "Admin Override", f"Updated `{field}` for {member.display_name} to `{value}`")
-@bot.command()
-async def update_scores(ctx, member: discord.Member, amount: str):
-    # مسموح للـ Mods فقط
-    if not any(r.name == 'Mod' for r in ctx.author.roles):
-        return await ctx.send("❌ This command is for **Mods** only.")
+        return await ctx.send("❌ هذا الأمر للمشرفين فقط!")
     
+    role = discord.utils.get(ctx.guild.roles, name="Verified Player")
+    if role:
+        await member.add_roles(role)
+        await ctx.send(f"✅ تم توثيق {member.mention} بنجاح!")
+    else:
+        await ctx.send("❌ رتبة `Verified Player` غير موجودة في السيرفر.")
+
+# --- (5) أمر تحديث النقاط للمشرفين ---
+@bot.command()
+async def update_points(ctx, member: discord.Member, amount: int):
+    if not any(role.name == 'Mod' for role in ctx.author.roles):
+        return await ctx.send("❌ هذا الأمر للمشرفين فقط!")
+
     data = load_data()
     uid = str(member.id)
     if uid not in data: data[uid] = {"points": 1200}
     
-    current_pts = data[uid].get('points', 1200)
-    
-    # حساب النقاط الجديدة (مثال: +60 أو -60)
-    try:
-        if amount.startswith('+'):
-            new_pts = current_pts + int(amount[1:])
-        elif amount.startswith('-'):
-            new_pts = current_pts - int(amount[1:])
-        else:
-            new_pts = int(amount)
-            
-        data[uid]['points'] = max(1, new_pts) # لا ينقص عن 1
-        save_data(data)
-        await ctx.send(f"✅ Updated {member.display_name}'s score to **[{data[uid]['points']}]**")
-    except:
-        await ctx.send("❌ Error: Use format like !update_scores @user +60")
+    data[uid]['points'] = data[uid].get('points', 1200) + amount
+    save_data(data)
+    await ctx.send(f"✅ تم تحديث نقاط {member.mention}. النقاط الحالية: **[{data[uid]['points']}]**")
 
 # ==========================================
 # (7) منطقة اللوبيات - أضف هنا مستقبلاً
