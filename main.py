@@ -60,39 +60,49 @@ class DropdownMenu(discord.ui.View):
 @bot.command(aliases=['p'])
 async def profile(ctx, member: discord.Member = None):
     member = member or ctx.author
-        all_data = load_data()
-        user_id = str(member.id)
-    # (1) التأكد من وجود البيانات أو إنشاءها
+    all_data = load_data()
+    user_id = str(member.id)
+
+    # التاكد من وجود البيانات او انشاؤها
     if user_id not in all_data:
         all_data[user_id] = {"points": 1200}
         save_data(all_data)
-    # (2) هنا السر: لازم ترجع المسافة لليسار عشان يقرأ البيانات دائماً
+
     data = all_data.get(user_id, {})
     pts = data.get('points', 1200)
 
+    # التحقق من الرتب (Verified / Ban)
     has_verify_role = discord.utils.get(member.roles, name="Verified Player")
+    is_banned = any(role.name == "Ranked Banned" for role in member.roles)
+
     joined = member.joined_at.strftime("%b %d, %Y") if member.joined_at else "-"
     reg = member.created_at.strftime("%b %d, %Y")
 
-    embed = discord.Embed(title=f"👤 {member.display_name}'s profile", color=discord.Color.blue())
-    
+    # تحديد اللون بناءً على الحالة (باند أو عادي)
+    embed_color = discord.Color.red() if is_banned else discord.Color.blue()
+    embed = discord.Embed(title=f"👤 {member.display_name}'s profile", color=embed_color)
+
+    # قسم البروفايل (MMR, PSN, Country, NAT)
     profile_val = (
-        f"**MMR Points**: [{pts}]\n"
+        f"**MMR Points**: {pts}\n"
         f"**PSN**: {data.get('psn', '-')}\n"
         f"**Country**: {data.get('country', '-')}\n"
         f"**NAT Type**: {data.get('nat', '-')}\n"
         f"**Joined**: {joined}\n"
         f"**Registered**: {reg}"
     )
-    embed.add_field(name="👥 Profile", value=profile_val, inline=False)
-    
+    embed.add_field(name="📊 Profile", value=profile_val, inline=False)
+
+    # قسم بيانات اللعب (Ranked Name, Consoles)
     game_data = f"**Ranked Name**: {data.get('ranked_name', '-')}\n**Consoles**: {data.get('consoles', '-')}"
-    if has_verify_role:
-        game_data += "\n**Verified Player** ✅"
-    
+    if is_banned:
+        game_data += "\n❌ **Status: Banned from Ranked**"
+    elif has_verify_role:
+        game_data += "\n✅ **Status: Verified Player**"
+
     embed.add_field(name="🎮 Game Data", value=game_data, inline=False)
     embed.set_thumbnail(url=member.display_avatar.url)
-    
+
     await ctx.send(embed=embed)
 
 @bot.command()
