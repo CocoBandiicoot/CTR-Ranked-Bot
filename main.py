@@ -63,7 +63,7 @@ async def profile(ctx, member: discord.Member = None):
     all_data = load_data()
     user_id = str(member.id)
 
-    # التاكد من وجود البيانات او انشاؤها
+    # التأكد من وجود البيانات أو إنشاؤها
     if user_id not in all_data:
         all_data[user_id] = {"points": 1200}
         save_data(all_data)
@@ -75,14 +75,14 @@ async def profile(ctx, member: discord.Member = None):
     has_verify_role = discord.utils.get(member.roles, name="Verified Player")
     is_banned = any(role.name == "Ranked Banned" for role in member.roles)
 
+    # معالجة التاريخ لتجنب الأخطاء
     joined = member.joined_at.strftime("%b %d, %Y") if member.joined_at else "-"
-    reg = member.created_at.strftime("%b %d, %Y")
+    reg = member.created_at.strftime("%b %d, %Y") if member.created_at else "-"
 
-    # تحديد اللون بناءً على الحالة (باند أو عادي)
+    # تحديد اللون بناءً على الحالة
     embed_color = discord.Color.red() if is_banned else discord.Color.blue()
     embed = discord.Embed(title=f"👤 {member.display_name}'s profile", color=embed_color)
 
-    # قسم البروفايل (MMR, PSN, Country, NAT)
     profile_val = (
         f"**MMR Points**: {pts}\n"
         f"**PSN**: {data.get('psn', '-')}\n"
@@ -93,7 +93,6 @@ async def profile(ctx, member: discord.Member = None):
     )
     embed.add_field(name="📊 Profile", value=profile_val, inline=False)
 
-    # قسم بيانات اللعب (Ranked Name, Consoles)
     game_data = f"**Ranked Name**: {data.get('ranked_name', '-')}\n**Consoles**: {data.get('consoles', '-')}"
     if is_banned:
         game_data += "\n❌ **Status: Banned from Ranked**"
@@ -115,13 +114,13 @@ async def set_psn(ctx, psn_id: str):
     if uid not in data: data[uid] = {}
     data[uid]["psn"] = psn_id
     save_data(data)
-    await send_success_embed(ctx, "PSN Updated", f"Your PSN has been set to {psn_id}")
+    await send_success_embed(ctx, "PSN Updated", f"Your PSN has been set to **{psn_id}**")
 
 @bot.command()
 async def set_flag(ctx, emoji: str):
     data = load_data()
     uid = str(ctx.author.id)
-    if uid in data and "country" in data[uid] and not any(r.name == 'Mod' for r in ctx.author.roles):
+    if uid in data and "country" in data[uid] and not any(r.name == "Mod" for r in ctx.author.roles):
         await ctx.send("⚠️ You cannot change your flag. Contact a Mod.")
         return
     if emoji not in ALLOWED_FLAGS:
@@ -135,12 +134,12 @@ async def set_flag(ctx, emoji: str):
 @bot.command()
 async def set_nat(ctx):
     view = DropdownMenu(ctx.author, "nat", ["NAT 1", "NAT 2 Open", "NAT 2 Closed", "NAT 3"])
-    await ctx.send(embed=discord.Embed(title="ℹ️ Info", description="Please select NAT type.", color=discord.Color.blue()), view=view)
+    await ctx.send(embed=discord.Embed(title="🌐 NAT Info", description="Please select NAT type."), view=view)
 
 @bot.command()
 async def set_consoles(ctx):
     view = DropdownMenu(ctx.author, "consoles", ["PS4", "PS5"])
-    await ctx.send(embed=discord.Embed(title="ℹ️ Info", description="Please select your console.", color=discord.Color.blue()), view=view)
+    await ctx.send(embed=discord.Embed(title="🎮 Consoles Info", description="Please select your consoles."), view=view)
 
 @bot.command()
 async def set_ranked_name(ctx, name: str):
@@ -155,7 +154,7 @@ async def set_ranked_name(ctx, name: str):
     if uid not in data: data[uid] = {}
     data[uid]["ranked_name"] = name
     save_data(data)
-    await send_success_embed(ctx, "Ranked Name Set", f"Your ranked name is now {name}")
+    await send_success_embed(ctx, "Ranked Name Set", f"Your ranked name is now **{name}**")
 
 # --- (5) أوامر المشرفين (رتبة Mod فقط) ---
 
