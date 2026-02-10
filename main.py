@@ -8,7 +8,7 @@ from flask import Flask
 app = Flask('')
 @app.route('/')
 def home(): return "Bot is Online 🚀"
-def run(): app.run(host='0.0.0.0', port=8000)
+def run(): app.run(host='0.0.0.0', port=8080)
 def keep_alive(): Thread(target=run).start()
 
 # --- (2) الإعدادات والأذونات ---
@@ -477,4 +477,4 @@ async def on_command_error(ctx, error):
 
 if __name__ == "__main__":
     keep_alive()
-    bot.run(os.getenv("TOKEN"))
+    bot.run(os.getenv("DISCORD_TOKEN"))
