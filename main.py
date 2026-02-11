@@ -3,7 +3,6 @@ from discord.ext import commands
 import os, json, re, random, datetime
 from threading import Thread
 from flask import Flask
-import datetime
 
 # --- (1) Uptime System ---
 app = Flask('')
@@ -31,15 +30,14 @@ def load_data():
         with open('players.json', 'r') as f: return json.load(f)
     return {}
 
-# دالة مساعدة للردود الموحدة (Embed)
 async def send_success_embed(ctx, title, message):
     embed = discord.Embed(title=f"✅ {title}", description=message, color=discord.Color.blue())
     await ctx.send(embed=embed)
 
-# --- (3) نظام القوائم المنسدلة (Selection Menus) ---
+# --- (3) نظام القوائم المنسدلة ---
 class DropdownMenu(discord.ui.View):
-    def init(self, author, field, options):
-        super().init(timeout=60)
+    def __init__(self, author, field, options): # تعديل هنا
+        super().__init__(timeout=60)
         self.author = author
         self.field = field
         select = discord.ui.Select(placeholder=f"Choose {field}...", options=[discord.SelectOption(label=opt, value=opt) for opt in options])
@@ -56,90 +54,70 @@ class DropdownMenu(discord.ui.View):
         embed = discord.Embed(title="✅ Success!", description=f"Your {self.field} has been set to {interaction.data['values'][0]}.", color=discord.Color.green())
         await interaction.response.edit_message(embed=embed, view=None)
 
-# --- (4) الأوامر الأساسية للاعبين ---
+# --- (4) أوامر اللاعبين ---
 
 @bot.command(aliases=['p'])
 async def profile(ctx, member: discord.Member = None):
     member = member or ctx.author
     all_data = load_data()
     user_id = str(member.id)
-
-    # التأكد من وجود البيانات أو إنشاؤها
+    
     if user_id not in all_data:
         all_data[user_id] = {"points": 1200}
         save_data(all_data)
 
     data = all_data.get(user_id, {})
     pts = data.get('points', 1200)
-
-    # التحقق من الرتب (Verified / Ban)
-    has_verify_role = discord.utils.get(member.roles, name="Verified Player")
     is_banned = any(role.name == "Ranked Banned" for role in member.roles)
+    
+    joined = member.joined_at.strftime("%b %d, %Y") if member.joined_at else "-"
+    reg = member.created_at.strftime("%b %d, %Y") if member.created_at else "-"
 
-    # معالجة التاريخ لتجنب الأخطاء
-    joined = member.joined_at.strftime("%b %d, %Y") if member.joined_at and hasattr(member.joined_at, 'strftime') else "-"
-    reg = member.created_at.strftime("%b %d, %Y") if member.created_at and hasattr(member.created_at, 'strftime') else "-"
-
-    # تحديد اللون بناءً على الحالة
-    embed_color = discord.Color.red() if is_banned else discord.Color.blue()
-    embed = discord.Embed(title=f"👤 {member.display_name}'s profile", color=embed_color)
-
-    profile_val = (
-        f"**MMR Points**: {pts}\n"
-        f"**PSN**: {data.get('psn', '-')}\n"
-        f"**Country**: {data.get('country', '-')}\n"
-        f"**NAT Type**: {data.get('nat', '-')}\n"
-        f"**Joined**: {joined}\n"
-        f"**Registered**: {reg}"
-    )
+    embed = discord.Embed(title=f"👤 {member.display_name}'s profile", color=discord.Color.red() if is_banned else discord.Color.blue())
+    profile_val = f"**MMR Points**: {pts}\n**PSN**: {data.get('psn', '-')}\n**Country**: {data.get('country', '-')}\n**NAT Type**: {data.get('nat', '-')}\n**Joined**: {joined}\n**Registered**: {reg}"
     embed.add_field(name="📊 Profile", value=profile_val, inline=False)
-
-    game_data = f"**Ranked Name**: {data.get('ranked_name', '-')}\n**Consoles**: {data.get('consoles', '-')}"
-    if is_banned:
-        game_data += "\n❌ **Status: Banned from Ranked**"
-    elif has_verify_role:
-        game_data += "\n✅ **Status: Verified Player**"
-
-    embed.add_field(name="🎮 Game Data", value=game_data, inline=False)
+    
+    status = "❌ **Status: Banned**" if is_banned else "✅ **Status: Active**"
+    embed.add_field(name="🎮 Game Data", value=f"{status}\n**Consoles**: {data.get('consoles', '-')}", inline=False)
     embed.set_thumbnail(url=member.display_avatar.url)
-
     await ctx.send(embed=embed)
 
-# --- (5) أوامر المشرفين (رتبة Mod فقط) ---
+@bot.command()
+async def set_psn(ctx, psn_id: str):
+    data = load_data()
+    uid = str(ctx.author.id)
+    if uid not in data: data[uid] = {}
+    data[uid]["psn"] = psn_id
+    save_data(data)
+    await send_success_embed(ctx, "PSN Updated", f"Your PSN has been set to **{psn_id}**")
 
 @bot.command()
-async def verify(ctx, member: discord.Member):
-    if not any(role.name == 'Mod' for role in ctx.author.roles):
-        return await ctx.send("❌ هذا الأمر للمشرفين فقط!")
-    
-    role = discord.utils.get(ctx.guild.roles, name="Verified Player")
-    if role:
-        await member.add_roles(role)
-        await ctx.send(f"✅ تم توثيق {member.mention} بنجاح!")
-    else:
-        await ctx.send("❌ رتبة `Verified Player` غير موجودة في السيرفر.")
+async def set_flag(ctx, emoji: str):
+    if emoji not in ALLOWED_FLAGS: return await ctx.send("❌ Flag not allowed.")
+    data = load_data()
+    uid = str(ctx.author.id)
+    if uid not in data: data[uid] = {}
+    data[uid]["country"] = emoji
+    save_data(data)
+    await send_success_embed(ctx, "Flag Updated", f"Your country is now {emoji}")
+
+@bot.command()
+async def set_nat(ctx):
+    view = DropdownMenu(ctx.author, "nat", ["NAT 1", "NAT 2 Open", "NAT 3"])
+    await ctx.send("Select your NAT Type:", view=view)
+
+# --- (5) أوامر المشرفين (رتبة Mod) ---
 
 @bot.command()
 @commands.has_permissions(manage_messages=True)
 async def ranked_ban(ctx, member: discord.Member, duration: str = "forever", *, reason="No reason"):
     role = discord.utils.get(ctx.guild.roles, name="Ranked Banned")
-    if not role:
-        await ctx.send("❌ خطأ: لم أجد رتبة باسم 'Ranked Banned' في السيرفر.")
-        return
-
+    if not role: return await ctx.send("❌ Create 'Ranked Banned' role first!")
     await member.add_roles(role)
-    
     embed = discord.Embed(title="🚫 Ranked Ban", color=discord.Color.red())
-    embed.add_field(name="Target", value=member.mention)
-    embed.add_field(name="Duration", value=duration)
+    embed.add_field(name="User", value=member.mention)
     embed.add_field(name="Reason", value=reason)
-    embed.set_footer(text=f"Banned by {ctx.author}")
-    
     await ctx.send(embed=embed)
-    try:
-        await member.send(f"⚠️ You have been banned from Ranked for: {duration}\nReason: {reason}")
-    except:
-        pass
 
 @bot.command()
 @commands.has_permissions(manage_messages=True)
@@ -147,23 +125,25 @@ async def ranked_unban(ctx, member: discord.Member):
     role = discord.utils.get(ctx.guild.roles, name="Ranked Banned")
     if role in member.roles:
         await member.remove_roles(role)
-        await ctx.send(f"✅ {member.mention} has been unbanned from Ranked.")
-    else:
-        await ctx.send("❌ This user is not banned.")
-      
-# --- (5) أمر تحديث النقاط للمشرفين ---
+        await ctx.send(f"✅ {member.mention} has been unbanned.")
+
 @bot.command()
 async def update_points(ctx, member: discord.Member, amount: int):
-    if not any(role.name == 'Mod' for role in ctx.author.roles):
-        return await ctx.send("❌ هذا الأمر للمشرفين فقط!")
-
+    if not any(role.name == 'Mod' for role in ctx.author.roles): return
     data = load_data()
     uid = str(member.id)
-    if uid not in data: data[uid] = {"points": 1200}
-    
-    data[uid]['points'] = data[uid].get('points', 1200) + amount
+    data[uid]['points'] = data.get(uid, {"points": 1200}).get('points', 1200) + amount
     save_data(data)
-    await ctx.send(f"✅ تم تحديث نقاط {member.mention}. النقاط الحالية: **[{data[uid]['points']}]**")
+    await ctx.send(f"✅ Updated! {member.display_name} points: **{data[uid]['points']}**")
+
+# --- (6) التشغيل النهائي ---
+@bot.event
+async def on_ready():
+    print(f"✅ Logged in as {bot.user}")
+
+if __name__ == "__main__":
+    keep_alive()
+    bot.run(os.getenv("DISCORD_TOKEN"))
 
 # ==========================================
 # (7) منطقة اللوبيات - أضف هنا مستقبلاً
