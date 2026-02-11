@@ -3,6 +3,7 @@ from discord.ext import commands
 import os, json, re, random, datetime
 from threading import Thread
 from flask import Flask
+import datetime
 
 # --- (1) Uptime System ---
 app = Flask('')
@@ -76,8 +77,8 @@ async def profile(ctx, member: discord.Member = None):
     is_banned = any(role.name == "Ranked Banned" for role in member.roles)
 
     # معالجة التاريخ لتجنب الأخطاء
-    joined = member.joined_at.strftime("%b %d, %Y") if member.joined_at else "-"
-    reg = member.created_at.strftime("%b %d, %Y") if member.created_at else "-"
+    joined = member.joined_at.strftime("%b %d, %Y") if member.joined_at and hasattr(member.joined_at, 'strftime') else "-"
+    reg = member.created_at.strftime("%b %d, %Y") if member.created_at and hasattr(member.created_at, 'strftime') else "-"
 
     # تحديد اللون بناءً على الحالة
     embed_color = discord.Color.red() if is_banned else discord.Color.blue()
@@ -104,58 +105,6 @@ async def profile(ctx, member: discord.Member = None):
 
     await ctx.send(embed=embed)
 
-@bot.command()
-async def set_psn(ctx, psn_id: str):
-    if not re.match(r"^[a-zA-Z0-9_-]+$", psn_id):
-        await ctx.send("❌ Error: PSN can only contain letters, numbers, (_) and (-).")
-        return
-    data = load_data()
-    uid = str(ctx.author.id)
-    if uid not in data: data[uid] = {}
-    data[uid]["psn"] = psn_id
-    save_data(data)
-    await send_success_embed(ctx, "PSN Updated", f"Your PSN has been set to **{psn_id}**")
-
-@bot.command()
-async def set_flag(ctx, emoji: str):
-    data = load_data()
-    uid = str(ctx.author.id)
-    if uid in data and "country" in data[uid] and not any(r.name == "Mod" for r in ctx.author.roles):
-        await ctx.send("⚠️ You cannot change your flag. Contact a Mod.")
-        return
-    if emoji not in ALLOWED_FLAGS:
-        await ctx.send("❌ Error: Please use a valid country flag emoji.")
-        return
-    if uid not in data: data[uid] = {}
-    data[uid]["country"] = emoji
-    save_data(data)
-    await send_success_embed(ctx, "Country Updated", f"Your flag has been set to {emoji}")
-
-@bot.command()
-async def set_nat(ctx):
-    view = DropdownMenu(ctx.author, "nat", ["NAT 1", "NAT 2 Open", "NAT 2 Closed", "NAT 3"])
-    await ctx.send(embed=discord.Embed(title="🌐 NAT Info", description="Please select NAT type."), view=view)
-
-@bot.command()
-async def set_consoles(ctx):
-    view = DropdownMenu(ctx.author, "consoles", ["PS4", "PS5"])
-    await ctx.send(embed=discord.Embed(title="🎮 Consoles Info", description="Please select your consoles."), view=view)
-
-@bot.command()
-async def set_ranked_name(ctx, name: str):
-    if not name.isalnum():
-        await ctx.send("❌ Error: Ranked Name must be without spaces or special symbols.")
-        return
-    data = load_data()
-    uid = str(ctx.author.id)
-    if uid in data and "ranked_name" in data[uid]:
-        await ctx.send("⚠️ You cannot change your name. Contact a Mod.")
-        return
-    if uid not in data: data[uid] = {}
-    data[uid]["ranked_name"] = name
-    save_data(data)
-    await send_success_embed(ctx, "Ranked Name Set", f"Your ranked name is now **{name}**")
-
 # --- (5) أوامر المشرفين (رتبة Mod فقط) ---
 
 @bot.command()
@@ -170,6 +119,38 @@ async def verify(ctx, member: discord.Member):
     else:
         await ctx.send("❌ رتبة `Verified Player` غير موجودة في السيرفر.")
 
+@bot.command()
+@commands.has_permissions(manage_messages=True)
+async def ranked_ban(ctx, member: discord.Member, duration: str = "forever", *, reason="No reason"):
+    role = discord.utils.get(ctx.guild.roles, name="Ranked Banned")
+    if not role:
+        await ctx.send("❌ خطأ: لم أجد رتبة باسم 'Ranked Banned' في السيرفر.")
+        return
+
+    await member.add_roles(role)
+    
+    embed = discord.Embed(title="🚫 Ranked Ban", color=discord.Color.red())
+    embed.add_field(name="Target", value=member.mention)
+    embed.add_field(name="Duration", value=duration)
+    embed.add_field(name="Reason", value=reason)
+    embed.set_footer(text=f"Banned by {ctx.author}")
+    
+    await ctx.send(embed=embed)
+    try:
+        await member.send(f"⚠️ You have been banned from Ranked for: {duration}\nReason: {reason}")
+    except:
+        pass
+
+@bot.command()
+@commands.has_permissions(manage_messages=True)
+async def ranked_unban(ctx, member: discord.Member):
+    role = discord.utils.get(ctx.guild.roles, name="Ranked Banned")
+    if role in member.roles:
+        await member.remove_roles(role)
+        await ctx.send(f"✅ {member.mention} has been unbanned from Ranked.")
+    else:
+        await ctx.send("❌ This user is not banned.")
+      
 # --- (5) أمر تحديث النقاط للمشرفين ---
 @bot.command()
 async def update_points(ctx, member: discord.Member, amount: int):
@@ -343,7 +324,7 @@ class LobbySelectMenu(discord.ui.Select):
         embed = discord.Embed(
             title="✅ Lobby Created!",
             description=f"Type: **{mode}**\nID: `{lobby_id}`\n\nاللوبي جاهز الآن في قائمة الانتظار.",
-            color=discord.Color.blue()
+            color=discord.Color.green()
         )
         await interaction.response.edit_message(embed=embed, view=None)
 
@@ -454,6 +435,15 @@ async def set_team(ctx, p1: discord.Member, p2: discord.Member, p3: discord.Memb
     # هذا الأمر لا يعمل في Duo
     # يرسل التنبيهات ويطلب ✅ من الجميع خلال دقيقة
     pass
+@bot.command()
+async def duo(ctx):
+    # فحص إذا كان اللاعب متبند
+    if any(role.name == "Ranked Banned" for role in ctx.author.roles):
+        await ctx.send(f"❌ {ctx.author.mention}, you are banned from Ranked and cannot use this command.")
+        return
+    
+    # هنا كمل كود الـ duo حقك الطبيعي...
+    await ctx.send("✅ Duo queue started...")  
     
 # ==========================================
 # (8) منطقة إضافة الكوماندات الجديدة - أضف هنا مستقبلاً
