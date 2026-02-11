@@ -31,7 +31,7 @@ def load_data():
     return {}
 
 async def send_success_embed(ctx, title, message):
-    embed = discord.Embed(title=f"✅ {title}", description=message, color=discord.Color.blue())
+    embed = discord.Embed(title=f"✅ {title}", description=message, color=discord.Color.green())
     await ctx.send(embed=embed)
 
 # --- (3) نظام القوائم المنسدلة ---
@@ -93,7 +93,7 @@ async def set_psn(ctx, psn_id: str):
 
 @bot.command()
 async def set_flag(ctx, emoji: str):
-    if emoji not in ALLOWED_FLAGS: return await ctx.send("❌ Flag not allowed.")
+    if emoji not in ALLOWED_FLAGS: return await ctx.send("No?.")
     data = load_data()
     uid = str(ctx.author.id)
     if uid not in data: data[uid] = {}
